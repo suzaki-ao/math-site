@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>数学AI v0.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #f6f2e8;
+    --paper-line: #ded5b8;
+    --ink: #1f2c42;
+    --ink-soft: #5b6579;
+    --red: #c1432f;
+    --red-soft: #e7a89b;
+    --blue: #3b6ea5;
+    --green: #4c8c63;
+    --card: #fffdf7;
+    --card-border: #e4dcc4;
+    --shadow: rgba(31,44,66,0.10);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    color: var(--ink);
+    background:
+      linear-gradient(var(--paper-line) 1px, transparent 1px) 0 0/100% 34px,
+      linear-gradient(90deg, var(--paper-line) 1px, transparent 1px) 0 0/34px 100%,
+      var(--paper);
+    background-attachment: fixed;
+    overflow:hidden;
+  }
+  .app{
+    height:100dvh;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  .app::before{
+    content:"";
+    position:absolute; top:0; bottom:0; left:26px;
+    width:2px; background: var(--red-soft); opacity:.5;
+    pointer-events:none; z-index:0;
+  }
+
+  header{
+    padding: 14px 20px 12px 40px;
+    display:flex; align-items:center; gap:10px;
+    border-bottom: 1.5px solid var(--paper-line);
+    background: rgba(246,242,232,0.9);
+    backdrop-filter: blur(2px);
+    position: relative; z-index:5;
+    flex-shrink:0;
+  }
+  header h1{
+    font-family:'Kaisei Decol', serif;
+    font-weight:700;
+    font-size: 23px;
+    margin:0;
+    letter-spacing:.02em;
+  }
+  header .badge{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    color: var(--red);
+    border:1.3px solid var(--red);
+    border-radius: 20px;
+    padding: 2px 7px;
+    font-weight:700;
+    transform: rotate(-4deg);
+    white-space:nowrap;
+  }
+  .sub{
+    font-size:11px;
+    color: var(--ink-soft);
+    display:none;
+  }
+  .angle-toggle{
+    margin-left:auto;
+    display:flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color: var(--ink-soft);
+  }
+  #angleBtn{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    font-size:12px;
+    background: var(--ink);
+    color:#f6f2e8;
+    border:none;
+    border-radius:20px;
+    padding:5px 12px;
+    cursor:pointer;
+  }
+
+  .main{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    position:relative; z-index:1;
+  }
+
+  .chat{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    padding: 18px 16px 18px 40px;
+    display:flex;
+    flex-direction:column;
+    gap: 16px;
+  }
+  .empty-hint{
+    margin-top: 30px;
+    color: var(--ink-soft);
+    font-size: 13px;
+    line-height:2;
+    text-align:center;
+    padding: 0 20px;
+  }
+  .empty-hint b{ color:var(--ink); }
+
+  .row{ display:flex; }
+  .row.user{ justify-content:flex-end; }
+  .row.ai{ justify-content:flex-start; }
+
+  .bubble{
+    max-width: 84%;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 6px var(--shadow);
+    font-size: 15px;
+    line-height:1.6;
+  }
+  .bubble.user{
+    background: var(--ink);
+    color: #f6f2e8;
+    border-bottom-right-radius: 4px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:17px;
+  }
+  .bubble.ai{
+    background: var(--card);
+    border: 1.4px solid var(--card-border);
+    border-left: 3px solid var(--red);
+    border-bottom-left-radius: 4px;
+    color: var(--ink);
+    min-width: 180px;
+  }
+
+  .steps{ display:flex; flex-direction:column; gap:6px; margin: 2px 0 10px 0;}
+  .step{ display:flex; align-items:flex-start; gap:8px; font-family:'JetBrains Mono', monospace; font-size: 13px; color: var(--ink-soft); }
+  .step .num{ color: var(--red); font-weight:700; font-size:11px; background: rgba(193,67,47,0.08); border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+  .step .expr{ color: var(--ink); word-break: break-word; }
+  .step .arrow{ color: var(--red-soft); }
+  .step .val{ color: var(--red); font-weight:700; }
+
+  .final{ margin-top: 4px; padding-top: 10px; border-top: 1.5px dashed var(--card-border); display:flex; align-items:baseline; gap:8px; font-family:'JetBrains Mono', monospace; }
+  .final .label{ font-size:12px; color: var(--ink-soft); }
+  .final .value{ font-size: 22px; font-weight:700; color: var(--red); text-decoration: underline wavy var(--red-soft) 2px; text-underline-offset: 4px; }
+  .no-steps{ font-size:12.5px; color: var(--ink-soft); margin-bottom:6px; }
+  .err-msg{ font-size:14px; color: var(--red); font-weight:600; }
+
+  /* ---- 数式ビジュアル(プレビュー & 吹き出し共通) ---- */
+  .expr-line{ display:inline-flex; align-items:center; flex-wrap:wrap; gap:1px; font-family:'JetBrains Mono', monospace; }
+  .expr-line .op-span{ margin:0 5px; color: var(--blue); }
+  .expr-line .const-span{ color: var(--red); }
+  .expr-line .var-span{ color: var(--green); font-style:italic; font-weight:700; }
+  .slot-placeholder{ color:#b9a98f; padding:0 3px; }
+
+  .tpl{ display:inline-flex; align-items:center; margin: 0 2px; }
+  .slot{ display:inline-flex; align-items:center; min-width: 12px; min-height: 1.1em; padding: 1px 3px; border-radius:4px; }
+  .slot:empty::before{ content:""; }
+
+  .frac-col{ display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:0 2px; }
+  .frac-col .slot{ font-size: 0.92em; }
+  .frac-bar{ width:100%; height:1.6px; background: var(--ink); margin: 1px 0; align-self:stretch; }
+
+  .bound-col{ display:inline-flex; flex-direction:column; align-items:center; justify-content:center; margin-right:3px; }
+  .big-sign{ font-size:1.5em; line-height:0.8; color: var(--red); font-weight:700; margin: 1px 0; }
+  .bound-col .slot{ font-size:0.62em; color: var(--ink-soft); }
+  .tpl-body{ margin-left:2px; }
+  .dx-label{ margin-left:3px; font-style:italic; color: var(--ink-soft); }
+
+  .radical-sign{ font-size:1.1em; color: var(--ink); margin-right:1px; }
+  .radicand{ border-top: 1.6px solid var(--ink); padding-top:1px; }
+
+  .abs-bar{ font-weight:700; color: var(--ink); }
+  .abs-body{ padding: 0 2px; }
+
+  .func-label{ color: var(--red); font-weight:700; font-size:0.92em; }
+  .func-paren{ color: var(--ink-soft); }
+  .func-body{ padding: 0 1px; }
+
+  .interactive .slot{ cursor:pointer; outline: 1px dashed transparent; }
+  .interactive .slot:hover{ outline-color: var(--red-soft); }
+  .interactive .active-slot{ outline: 1.6px solid var(--red) !important; background: rgba(193,67,47,0.08); }
+
+  /* ---- composer / 入力エリア ---- */
+  .composer{
+    border-top: 1.5px solid var(--paper-line);
+    background: rgba(255,253,247,0.92);
+    backdrop-filter: blur(2px);
+    padding: 10px 14px 12px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .preview-wrap{
+    background: var(--card);
+    border: 1.4px solid var(--card-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-height: 46px;
+    max-height: 22vh;
+    overflow-y:auto;
+    display:flex;
+    align-items:center;
+    box-shadow: inset 0 1px 3px rgba(31,44,66,0.05);
+    font-size: 18px;
+    font-weight:600;
+  }
+  #preview .placeholder{ color:#b9b0a0; font-weight:400; font-family:'Zen Kaku Gothic New',sans-serif; font-size:14px; }
+  .cursor{ display:inline-block; width:2px; height:1em; background: var(--red); margin-left:2px; vertical-align:-2px; animation: blink 1s step-start infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .focus-toolbar{
+    display:none;
+    align-items:center;
+    gap:8px;
+    font-size:12px;
+    color: var(--ink-soft);
+    background: rgba(193,67,47,0.06);
+    border: 1px solid var(--red-soft);
+    border-radius:8px;
+    padding: 5px 9px;
+  }
+  .focus-toolbar.show{ display:flex; }
+  .focus-toolbar .fbtn{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    border:1px solid var(--card-border);
+    background: var(--card);
+    border-radius:6px;
+    padding:3px 8px;
+    cursor:pointer;
+    color: var(--ink);
+    margin-left:auto;
+  }
+  .focus-toolbar .fbtn.up{ margin-left:0; }
+  .focus-toolbar .flabel{ font-weight:600; color: var(--red); }
+
+  .tabs{ display:flex; gap:6px; }
+  .tab-btn{
+    flex:1;
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    padding:6px 0;
+    border-radius:8px;
+    border: 1.3px solid var(--card-border);
+    background: var(--card);
+    color: var(--ink-soft);
+    cursor:pointer;
+  }
+  .tab-btn.active{ background: var(--ink); color:#f6f2e8; border-color: var(--ink); }
+
+  .keypad{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .key{
+    appearance:none; border:none; border-radius: 9px; padding: 11px 0;
+    font-family:'JetBrains Mono', monospace; font-size: 15px; font-weight:600;
+    background: var(--card); border: 1.3px solid var(--card-border); color: var(--ink);
+    cursor:pointer; transition: transform .06s ease; box-shadow: 0 2px 0 var(--card-border);
+  }
+  .key:active{ transform: translateY(2px); box-shadow: 0 0 0 var(--card-border); }
+  .key.op{ color: var(--blue); }
+  .key.func{ color: var(--red); font-size:13.5px; }
+  .key.tplkey{ color: var(--green); font-size: 13.5px; }
+
+  .action-row{ display:grid; grid-template-columns: 1fr 1fr 2fr; gap:6px; }
+  .action-row .key.back{ color: var(--ink-soft); }
+  .action-row .key.clear{ color: var(--red); border-color: var(--red-soft); }
+  .action-row .key.equals{
+    background: var(--red); color:#fffdf7; border-color: var(--red);
+    box-shadow: 0 2px 0 #8f2f1f; font-size:16px;
+  }
+  .action-row .key.equals:active{ box-shadow:0 0 0 #8f2f1f; }
+
+  ::-webkit-scrollbar{ width:6px; }
+  ::-webkit-scrollbar-thumb{ background: var(--card-border); border-radius:4px; }
+
+  /* ---- デスクトップ: 2カラム全画面 ---- */
+  @media (min-width: 860px){
+    .main{ flex-direction:row; }
+    .chat{ flex:1; padding: 24px 30px 24px 46px; }
+    .bubble{ max-width: 640px; }
+    .composer{
+      width: 400px;
+      flex-shrink:0;
+      border-top:none;
+      border-left: 1.5px solid var(--paper-line);
+      padding: 16px 18px;
+      justify-content:flex-start;
+    }
+    .preview-wrap{ font-size:20px; max-height: 26vh; }
+    .sub{ display:block; margin-left:14px; }
+    header{ padding-left:46px; }
+    .app::before{ display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <svg width="28" height="28" viewBox="0 0 30 30" fill="none">
+      <rect x="4" y="4" width="22" height="22" rx="5" stroke="#1f2c42" stroke-width="2"/>
+      <path d="M9 14.5H21" stroke="#c1432f" stroke-width="2" stroke-linecap="round"/>
+      <path d="M9 19.5H16" stroke="#3b6ea5" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="21" cy="9.5" r="1.6" fill="#c1432f"/>
+      <circle cx="9" cy="9.5" r="1.6" fill="#3b6ea5"/>
+    </svg>
+    <h1>数学AI</h1>
+    <span class="badge">v0.2</span>
+    <div class="sub">計算チャット・数式テンプレート対応</div>
+    <div class="angle-toggle">
+      <button id="angleBtn" title="三角関数の角度単位">DEG</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="chat" id="chat">
+      <div class="empty-hint" id="hint">
+        右下（またはこの下）のキーパッドで式を組み立てましょう。<br>
+        <b>基本</b>タブ… 四則演算・( )・π・^・%<br>
+        <b>関数</b>タブ… sin/cos/tan・log・ln・√・|x|・<b>Σ</b>・<b>∫</b>・分数・n!<br>
+        Σやフの中に入ったら、式中の枠を <b>タップ</b> して移動できます。
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="preview-wrap"><div id="preview"></div></div>
+
+      <div class="focus-toolbar" id="focusToolbar">
+        <span class="flabel" id="focusLabel"></span>
+        <button class="fbtn up" id="fUp">▲戻る</button>
+        <button class="fbtn" id="fNext">次のらん▶</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="basic">基本</button>
+        <button class="tab-btn" data-tab="func">関数・記号</button>
+      </div>
+
+      <div class="keypad" id="keypadBasic">
+        <button class="key" data-num="7">7</button>
+        <button class="key" data-num="8">8</button>
+        <button class="key" data-num="9">9</button>
+        <button class="key op" data-op="÷">÷</button>
+
+        <button class="key" data-num="4">4</button>
+        <button class="key" data-num="5">5</button>
+        <button class="key" data-num="6">6</button>
+        <button class="key op" data-op="×">×</button>
+
+        <button class="key" data-num="1">1</button>
+        <button class="key" data-num="2">2</button>
+        <button class="key" data-num="3">3</button>
+        <button class="key op" data-op="−" data-realop="-">−</button>
+
+        <button class="key" data-num="0">0</button>
+        <button class="key" data-num=".">.</button>
+        <button class="key" data-action="paren-open">(</button>
+        <button class="key" data-action="paren-close">)</button>
+
+        <button class="key func" data-action="pi">π</button>
+        <button class="key op" data-op="^">^</button>
+        <button class="key op" data-op="%">%</button>
+        <button class="key op" data-op="+">+</button>
+      </div>
+
+      <div class="keypad" id="keypadFunc" style="display:none;">
+        <button class="key func" data-tpl="sin">sin</button>
+        <button class="key func" data-tpl="cos">cos</button>
+        <button class="key func" data-tpl="tan">tan</button>
+        <button class="key tplkey" data-tpl="sqrt">√</button>
+
+        <button class="key func" data-tpl="log">log</button>
+        <button class="key func" data-tpl="ln">ln</button>
+        <button class="key func" data-action="e">e</button>
+        <button class="key tplkey" data-tpl="abs">|x|</button>
+
+        <button class="key tplkey" data-tpl="sum">Σ</button>
+        <button class="key tplkey" data-tpl="integral">∫</button>
+        <button class="key" data-action="var-n">n</button>
+        <button class="key" data-action="var-x">x</button>
+
+        <button class="key tplkey" data-tpl="frac">a/b</button>
+        <button class="key op" data-action="fact">n!</button>
+        <button class="key" data-action="paren-open">(</button>
+        <button class="key" data-action="paren-close">)</button>
+      </div>
+
+      <div class="action-row">
+        <button class="key back" data-action="back">⌫</button>
+        <button class="key clear" data-action="clear">C</button>
+        <button class="key equals" data-action="equals">= 計算する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== 状態 ===================== */
+let tokens = [];
+let focusPath = [];
+let angleMode = 'deg';
+
+const TPL_DEFS = {
+  sqrt:{slots:['body']}, sin:{slots:['body']}, cos:{slots:['body']}, tan:{slots:['body']},
+  log:{slots:['body']}, ln:{slots:['body']}, abs:{slots:['body']},
+  frac:{slots:['num','den']},
+  sum:{slots:['lower','upper','body']},
+  integral:{slots:['lower','upper','body']}
+};
+const SLOT_LABELS = {
+  sqrt:{body:'√の中身'}, sin:{body:'sinの中身'}, cos:{body:'cosの中身'}, tan:{body:'tanの中身'},
+  log:{body:'logの真数'}, ln:{body:'lnの真数'}, abs:{body:'絶対値の中身'},
+  frac:{num:'分数の分子', den:'分数の分母'},
+  sum:{lower:'Σの下端(開始値)', upper:'Σの上端(終了値)', body:'Σの中身の式(nを使えます)'},
+  integral:{lower:'∫の下端', upper:'∫の上端', body:'被積分関数 f(x)(xを使えます)'}
+};
+function labelFor(kind,key){ return (SLOT_LABELS[kind]&&SLOT_LABELS[kind][key]) || (kind+'.'+key); }
+
+/* ===================== 状態操作 ===================== */
+function getActiveArray(){
+  if(!focusPath.length) return tokens;
+  const step = focusPath[focusPath.length-1];
+  return step.node.slots[step.key];
+}
+function arrayFromPath(path){
+  if(!path.length) return tokens;
+  const s = path[path.length-1];
+  return s.node.slots[s.key];
+}
+function isValueToken(t){
+  return !!t && (t.type==='num'||t.type==='pi'||t.type==='e'||t.type==='tpl'||t.type==='rparen'||t.type==='var');
+}
+
+function pushDigit(d){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(last && last.type==='num'){
+    if(d==='.' && last.value.includes('.')) return;
+    last.value += d;
+  } else {
+    if(isValueToken(last)) arr.push({type:'op', value:'×'});
+    arr.push({type:'num', value: d==='.' ? '0.' : d});
+  }
+  render();
+}
+function pushOp(op){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(!last){
+    if(op==='-'){ arr.push({type:'op', value:'-', unary:true}); render(); }
+    return;
+  }
+  if(last.type==='op'){
+    if(op==='-'){ arr.push({type:'op', value:'-', unary:true}); render(); return; }
+    arr[arr.length-1] = {type:'op', value:op};
+    render(); return;
+  }
+  if(last.type==='lparen'){
+    if(op==='-'){ arr.push({type:'op', value:'-', unary:true}); render(); }
+    return;
+  }
+  arr.push({type:'op', value:op});
+  render();
+}
+function pushParenOpen(){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(isValueToken(last)) arr.push({type:'op', value:'×'});
+  arr.push({type:'lparen'});
+  render();
+}
+function pushParenClose(){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(!last || last.type==='op' || last.type==='lparen') return;
+  let openCount=0;
+  arr.forEach(t=>{ if(t.type==='lparen') openCount++; if(t.type==='rparen') openCount--; });
+  if(openCount<=0) return;
+  arr.push({type:'rparen'});
+  render();
+}
+function pushConst(type){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(isValueToken(last)) arr.push({type:'op', value:'×'});
+  arr.push({type});
+  render();
+}
+function pushFactorial(){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(last && isValueToken(last)){
+    arr.push({type:'fact'});
+    render();
+  }
+}
+function pushVar(name){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(isValueToken(last)) arr.push({type:'op', value:'×'});
+  arr.push({type:'var', name});
+  render();
+}
+function pushTemplate(kind){
+  const def = TPL_DEFS[kind];
+  const slots = {};
+  def.slots.forEach(s=>slots[s]=[]);
+  const node = {type:'tpl', kind, slots};
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(isValueToken(last)) arr.push({type:'op', value:'×'});
+  node.parentPath = focusPath.slice();
+  arr.push(node);
+  focusPath = node.parentPath.concat([{node, key: def.slots[0]}]);
+  render();
+}
+function setFocusTo(node,key){
+  focusPath = node.parentPath.concat([{node,key}]);
+  render();
+}
+function nextField(){
+  if(!focusPath.length) return;
+  const step = focusPath[focusPath.length-1];
+  const def = TPL_DEFS[step.node.kind];
+  const idx = def.slots.indexOf(step.key);
+  if(idx < def.slots.length-1){
+    focusPath = step.node.parentPath.concat([{node:step.node, key: def.slots[idx+1]}]);
+  } else {
+    focusPath = step.node.parentPath.slice();
+  }
+  render();
+}
+function exitField(){
+  if(!focusPath.length) return;
+  const step = focusPath[focusPath.length-1];
+  focusPath = step.node.parentPath.slice();
+  render();
+}
+function backspace(){
+  const arr = getActiveArray();
+  if(arr.length>0){
+    const last = arr[arr.length-1];
+    if(last.type==='num' && last.value.length>1){
+      last.value = last.value.slice(0,-1);
+    } else {
+      arr.pop();
+    }
+  } else if(focusPath.length>0){
+    const step = focusPath[focusPath.length-1];
+    const parentArr = arrayFromPath(step.node.parentPath);
+    const isEmpty = TPL_DEFS[step.node.kind].slots.every(k=>step.node.slots[k].length===0);
+    if(isEmpty){
+      const idx = parentArr.indexOf(step.node);
+      if(idx>-1) parentArr.splice(idx,1);
+      focusPath = step.node.parentPath.slice();
+    } else {
+      const def = TPL_DEFS[step.node.kind];
+      const idx2 = def.slots.indexOf(step.key);
+      if(idx2>0){ focusPath = step.node.parentPath.concat([{node:step.node, key:def.slots[idx2-1]}]); }
+      else { focusPath = step.node.parentPath.slice(); }
+    }
+  }
+  render();
+}
+function clearAll(){ tokens=[]; focusPath=[]; render(); }
+
+/* ===================== パーサー ===================== */
+class ParseError extends Error{}
+
+function parse(tokenList){
+  let pos = 0;
+  function peek(){ return tokenList[pos]; }
+  function next(){ return tokenList[pos++]; }
+
+  function parseExpr(){
+    let node = parseTerm();
+    while(peek() && peek().type==='op' && !peek().unary && (peek().value==='+' || peek().value==='-')){
+      const op = next().value;
+      const right = parseTerm();
+      node = {type:'binop', op, left:node, right};
+    }
+    return node;
+  }
+  function parseTerm(){
+    let node = parsePower();
+    while(true){
+      const t = peek();
+      if(t && t.type==='op' && !t.unary && (t.value==='×' || t.value==='÷' || t.value==='%')){
+        next();
+        const right = parsePower();
+        node = {type:'binop', op:t.value, left:node, right};
+      } else {
+        break;
+      }
+    }
+    return node;
+  }
+  function parsePower(){
+    const base = parseUnary();
+    const t = peek();
+    if(t && t.type==='op' && !t.unary && t.value==='^'){
+      next();
+      const exp = parsePower();
+      return {type:'binop', op:'^', left:base, right:exp};
+    }
+    return base;
+  }
+  function parseUnary(){
+    const t = peek();
+    if(t && t.type==='op' && t.unary && t.value==='-'){
+      next();
+      return {type:'neg', val: parseUnary()};
+    }
+    return parsePostfix();
+  }
+  function parsePostfix(){
+    let node = parsePrimary();
+    while(peek() && peek().type==='fact'){
+      next();
+      node = {type:'fact', val:node};
+    }
+    return node;
+  }
+  function parsePrimary(){
+    const t = peek();
+    if(!t) throw new ParseError('式が不完全です');
+    if(t.type==='num'){
+      next();
+      const v = parseFloat(t.value);
+      if(isNaN(v)) throw new ParseError('数値の形式が正しくありません');
+      return {type:'num', value:v};
+    }
+    if(t.type==='pi'){ next(); return {type:'num', value:Math.PI, label:'π'}; }
+    if(t.type==='e'){ next(); return {type:'num', value:Math.E, label:'e'}; }
+    if(t.type==='var'){ next(); return {type:'var', name:t.name}; }
+    if(t.type==='lparen'){
+      next();
+      const inner = parseExpr();
+      const close = peek();
+      if(!close || close.type!=='rparen') throw new ParseError('括弧が閉じられていません');
+      next();
+      return {type:'group', val: inner};
+    }
+    if(t.type==='tpl'){
+      next();
+      const def = TPL_DEFS[t.kind];
+      const asts = {};
+      for(const s of def.slots){
+        const subTokens = t.slots[s];
+        if(subTokens.length===0) throw new ParseError(labelFor(t.kind,s) + 'が未入力です');
+        asts[s] = parse(subTokens);
+      }
+      return {type:'tpl', kind:t.kind, asts};
+    }
+    throw new ParseError('式の書き方が正しくありません');
+  }
+
+  const result = parseExpr();
+  if(pos < tokenList.length) throw new ParseError('式の書き方が正しくありません');
+  return result;
+}
+
+/* ===================== 評価 ===================== */
+function formatNum(v){
+  if(!isFinite(v)) throw new ParseError('計算できない値になりました');
+  let r = Math.round(v*1e9)/1e9;
+  if(Object.is(r,-0)) r = 0;
+  if(Math.abs(r) < 1e15) return r.toString();
+  return r.toExponential(4);
+}
+function toRad(v){ return angleMode==='deg' ? v*Math.PI/180 : v; }
+
+function evalNode(node, steps, vars){
+  vars = vars || {};
+  switch(node.type){
+    case 'num': return { value:node.value, text: node.label ? node.label : formatNum(node.value) };
+    case 'var': {
+      if(vars[node.name]===undefined) throw new ParseError(`変数 ${node.name} はΣ・∫の中だけで使えます`);
+      return { value: vars[node.name], text: node.name };
+    }
+    case 'group': return evalNode(node.val, steps, vars);
+    case 'neg': {
+      const v = evalNode(node.val, steps, vars);
+      const result = -v.value;
+      steps.push({expr:`−${v.text}`, val:formatNum(result)});
+      return { value:result, text:formatNum(result) };
+    }
+    case 'fact': {
+      const v = evalNode(node.val, steps, vars);
+      if(!Number.isInteger(v.value) || v.value<0) throw new ParseError('階乗は0以上の整数のみ計算できます');
+      if(v.value>170) throw new ParseError('数が大きすぎて計算できません');
+      let f=1;
+      for(let i=2;i<=v.value;i++) f*=i;
+      steps.push({expr:`${v.text}!`, val:formatNum(f)});
+      return { value:f, text:formatNum(f) };
+    }
+    case 'binop': {
+      const l = evalNode(node.left, steps, vars);
+      const r = evalNode(node.right, steps, vars);
+      let result;
+      switch(node.op){
+        case '+': result = l.value + r.value; break;
+        case '-': result = l.value - r.value; break;
+        case '×': result = l.value * r.value; break;
+        case '÷': if(r.value===0) throw new ParseError('0では割れません'); result = l.value / r.value; break;
+        case '^': result = Math.pow(l.value, r.value); break;
+        case '%': result = l.value * (r.value/100); break;
+        default: throw new ParseError('未対応の演算子です');
+      }
+      steps.push({expr:`${l.text} ${node.op} ${r.text}`, val:formatNum(result)});
+      return { value:result, text:formatNum(result) };
+    }
+    case 'tpl': {
+      switch(node.kind){
+        case 'sqrt': {
+          const v = evalNode(node.asts.body, steps, vars);
+          if(v.value<0) throw new ParseError('負の数の√は計算できません');
+          const result = Math.sqrt(v.value);
+          steps.push({expr:`√${v.text}`, val:formatNum(result)});
+          return { value:result, text:formatNum(result) };
+        }
+        case 'sin': case 'cos': case 'tan': {
+          const v = evalNode(node.asts.body, steps, vars);
+          const result = Math[node.kind](toRad(v.value));
+          steps.push({expr:`${node.kind}(${v.text}${angleMode==='deg'?'°':''})`, val:formatNum(result)});
+          return { value:result, text:formatNum(result) };
+        }
+        case 'log': {
+          const v = evalNode(node.asts.body, steps, vars);
+          if(v.value<=0) throw new ParseError('logの真数は正の数である必要があります');
+          const result = Math.log10(v.value);
+          steps.push({expr:`log(${v.text})`, val:formatNum(result)});
+          return { value:result, text:formatNum(result) };
+        }
+        case 'ln': {
+          const v = evalNode(node.asts.body, steps, vars);
+          if(v.value<=0) throw new ParseError('lnの真数は正の数である必要があります');
+          const result = Math.log(v.value);
+          steps.push({expr:`ln(${v.text})`, val:formatNum(result)});
+          return { value:result, text:formatNum(result) };
+        }
+        case 'abs': {
+          const v = evalNode(node.asts.body, steps, vars);
+          const result = Math.abs(v.value);
+          steps.push({expr:`|${v.text}|`, val:formatNum(result)});
+          return { value:result, text:formatNum(result) };
+        }
+        case 'frac': {
+          const l = evalNode(node.asts.num, steps, vars);
+          const r = evalNode(node.asts.den, steps, vars);
+          if(r.value===0) throw new ParseError('分母が0です');
+          const result = l.value / r.value;
+          steps.push({expr:`${l.text}/${r.text}`, val:formatNum(result)});
+          return { value:result, text:formatNum(result) };
+        }
+        case 'sum': {
+          const lo = evalNode(node.asts.lower, [], vars);
+          const hi = evalNode(node.asts.upper, [], vars);
+          const lower = Math.round(lo.value), upper = Math.round(hi.value);
+          if(upper < lower) throw new ParseError('Σの上端は下端以上にしてください');
+          if(upper - lower > 100000) throw new ParseError('Σの範囲が大きすぎます(10万項まで)');
+          let total = 0;
+          const preview = [];
+          for(let k=lower;k<=upper;k++){
+            const r = evalNode(node.asts.body, [], Object.assign({}, vars, {n:k}));
+            total += r.value;
+            if(preview.length<6) preview.push(formatNum(r.value));
+          }
+          const count = upper-lower+1;
+          const detail = count<=6 ? preview.join('+') : preview.slice(0,3).join('+')+` + …(全${count}項)`;
+          steps.push({expr:`Σ(n=${lower}→${upper}) = ${detail}`, val:formatNum(total)});
+          return { value:total, text:formatNum(total) };
+        }
+        case 'integral': {
+          const lo = evalNode(node.asts.lower, [], vars);
+          const hi = evalNode(node.asts.upper, [], vars);
+          const a = lo.value, b = hi.value;
+          if(a===b){ steps.push({expr:`∫[${formatNum(a)}→${formatNum(b)}]`, val:'0'}); return {value:0,text:'0'}; }
+          const n = 2000;
+          const lower = Math.min(a,b), upper = Math.max(a,b);
+          const h = (upper-lower)/n;
+          let sum = evalNode(node.asts.body, [], Object.assign({}, vars, {x:lower})).value
+                  + evalNode(node.asts.body, [], Object.assign({}, vars, {x:upper})).value;
+          for(let i=1;i<n;i++){
+            const xi = lower + i*h;
+            const coef = (i%2===0) ? 2 : 4;
+            sum += coef * evalNode(node.asts.body, [], Object.assign({}, vars, {x:xi})).value;
+          }
+          let result = (h/3)*sum;
+          if(a>b) result = -result;
+          steps.push({expr:`∫[${formatNum(a)}→${formatNum(b)}] f(x)dx ≈ シンプソン近似`, val:formatNum(result)});
+          return { value:result, text:formatNum(result) };
+        }
+      }
+    }
+  }
+  throw new ParseError('式を解析できませんでした');
+}
+
+function compute(){
+  if(tokens.length===0) throw new ParseError('式を入力してください');
+  const ast = parse(tokens);
+  const steps = [];
+  const result = evalNode(ast, steps, {});
+  return { steps, value: result.value, text: result.text };
+}
+
+/* ===================== 表示(インタラクティブ数式ビジュアル) ===================== */
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function textSpan(txt, cls){ const s=document.createElement('span'); if(cls) s.className=cls; s.textContent=txt; return s; }
+
+function renderTokenArray(arr, opts){
+  const frag = document.createElement('span');
+  frag.className = 'expr-line';
+  if(arr.length===0 && opts.interactive){
+    frag.appendChild(textSpan('…','slot-placeholder'));
+  }
+  arr.forEach(t=>{ frag.appendChild(renderToken(t, opts)); });
+  return frag;
+}
+
+function renderToken(t, opts){
+  switch(t.type){
+    case 'num': return textSpan(t.value);
+    case 'op': return textSpan(t.unary && t.value==='-' ? '−' : t.value, 'op-span');
+    case 'lparen': return textSpan('(');
+    case 'rparen': return textSpan(')');
+    case 'pi': return textSpan('π','const-span');
+    case 'e': return textSpan('e','const-span');
+    case 'fact': return textSpan('!');
+    case 'var': return textSpan(t.name,'var-span');
+    case 'tpl': return renderTemplate(t, opts);
+  }
+  return document.createTextNode('');
+}
+
+function renderTemplate(node, opts){
+  const wrap = document.createElement('span');
+  wrap.className = 'tpl tpl-'+node.kind;
+
+  function slotBox(key, extraCls){
+    const box = document.createElement('span');
+    box.className = 'slot ' + (extraCls||'');
+    if(opts.interactive){
+      const top = focusPath[focusPath.length-1];
+      if(top && top.node===node && top.key===key) box.classList.add('active-slot');
+      box.addEventListener('click', (e)=>{ e.stopPropagation(); setFocusTo(node,key); });
+    }
+    box.appendChild(renderTokenArray(node.slots[key], opts));
+    return box;
+  }
+
+  if(node.kind==='frac'){
+    const col = document.createElement('span'); col.className='frac-col';
+    col.appendChild(slotBox('num','frac-num'));
+    const bar = document.createElement('span'); bar.className='frac-bar';
+    col.appendChild(bar);
+    col.appendChild(slotBox('den','frac-den'));
+    wrap.appendChild(col);
+  } else if(node.kind==='sum' || node.kind==='integral'){
+    const sign = document.createElement('span'); sign.className='big-sign';
+    sign.textContent = node.kind==='sum' ? 'Σ' : '∫';
+    const boundCol = document.createElement('span'); boundCol.className='bound-col';
+    boundCol.appendChild(slotBox('upper','bound-upper'));
+    boundCol.appendChild(sign);
+    boundCol.appendChild(slotBox('lower','bound-lower'));
+    wrap.appendChild(boundCol);
+    wrap.appendChild(slotBox('body','tpl-body'));
+    if(node.kind==='integral') wrap.appendChild(textSpan('dx','dx-label'));
+  } else if(node.kind==='sqrt'){
+    wrap.appendChild(textSpan('√','radical-sign'));
+    wrap.appendChild(slotBox('body','radicand'));
+  } else if(node.kind==='abs'){
+    wrap.appendChild(textSpan('|','abs-bar'));
+    wrap.appendChild(slotBox('body','abs-body'));
+    wrap.appendChild(textSpan('|','abs-bar'));
+  } else {
+    wrap.appendChild(textSpan(node.kind,'func-label'));
+    wrap.appendChild(textSpan('(','func-paren'));
+    wrap.appendChild(slotBox('body','func-body'));
+    wrap.appendChild(textSpan(')','func-paren'));
+  }
+  return wrap;
+}
+
+/* ===================== render ===================== */
+function render(){
+  renderPreview();
+  renderFocusToolbar();
+}
+
+function renderPreview(){
+  const preview = document.getElementById('preview');
+  preview.innerHTML = '';
+  preview.className = 'interactive';
+  if(tokens.length===0){
+    const ph = document.createElement('span'); ph.className='placeholder'; ph.textContent='式をここに入力…';
+    preview.appendChild(ph);
+    preview.appendChild(textSpan('', 'cursor-holder'));
+    const cur = document.createElement('span'); cur.className='cursor';
+    preview.appendChild(cur);
+    return;
+  }
+  preview.appendChild(renderTokenArray(tokens, {interactive:true}));
+  const cur = document.createElement('span'); cur.className='cursor';
+  preview.appendChild(cur);
+  preview.scrollTop = preview.scrollHeight;
+}
+
+function renderFocusToolbar(){
+  const bar = document.getElementById('focusToolbar');
+  const label = document.getElementById('focusLabel');
+  if(focusPath.length===0){
+    bar.classList.remove('show');
+    return;
+  }
+  const step = focusPath[focusPath.length-1];
+  label.textContent = '編集中: ' + labelFor(step.node.kind, step.key);
+  bar.classList.add('show');
+  const def = TPL_DEFS[step.node.kind];
+  const idx = def.slots.indexOf(step.key);
+  document.getElementById('fNext').textContent = idx < def.slots.length-1 ? '次のらん▶' : '完了 ✓';
+}
+
+/* ===================== チャット ===================== */
+function addUserBubble(){
+  const chat = document.getElementById('chat');
+  const hint = document.getElementById('hint');
+  if(hint) hint.remove();
+  const row = document.createElement('div');
+  row.className = 'row user';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble user';
+  bubble.appendChild(renderTokenArray(tokens, {interactive:false}));
+  row.appendChild(bubble);
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function addAiBubble({steps, value, text, error}){
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = 'row ai';
+  if(error){
+    row.innerHTML = `<div class="bubble ai error"><div class="err-msg">⚠️ ${escapeHtml(error)}</div></div>`;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+    return;
+  }
+  let stepsHtml = '';
+  if(steps.length === 0){
+    stepsHtml = `<div class="no-steps">この式はすでに1つの値なので、計算の途中式はありません。</div>`;
+  } else {
+    stepsHtml = '<div class="steps">' + steps.map((s,i)=>`
+      <div class="step">
+        <span class="num">${i+1}</span>
+        <span class="expr">${escapeHtml(s.expr)}</span>
+        <span class="arrow">→</span>
+        <span class="val">${escapeHtml(s.val)}</span>
+      </div>`).join('') + '</div>';
+  }
+  row.innerHTML = `<div class="bubble ai">
+    ${stepsHtml}
+    <div class="final"><span class="label">こたえ</span><span class="value">${escapeHtml(text)}</span></div>
+  </div>`;
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function submit(){
+  if(tokens.length===0) return;
+  addUserBubble();
+  try{
+    const result = compute();
+    addAiBubble(result);
+  }catch(err){
+    addAiBubble({ error: err.message || '計算できませんでした' });
+  }
+  clearAll();
+}
+
+/* ===================== イベント ===================== */
+function wireKeypad(id){
+  document.getElementById(id).addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const num = btn.dataset.num;
+    const op = btn.dataset.realop || btn.dataset.op;
+    const tpl = btn.dataset.tpl;
+    const action = btn.dataset.action;
+
+    if(num !== undefined){ pushDigit(num); return; }
+    if(tpl !== undefined){ pushTemplate(tpl); return; }
+    if(op !== undefined){ pushOp(op); return; }
+
+    switch(action){
+      case 'paren-open': pushParenOpen(); break;
+      case 'paren-close': pushParenClose(); break;
+      case 'pi': pushConst('pi'); break;
+      case 'e': pushConst('e'); break;
+      case 'fact': pushFactorial(); break;
+      case 'var-n': pushVar('n'); break;
+      case 'var-x': pushVar('x'); break;
+      case 'back': backspace(); break;
+      case 'clear': clearAll(); break;
+      case 'equals': submit(); break;
+    }
+  });
+}
+wireKeypad('keypadBasic');
+wireKeypad('keypadFunc');
+
+document.getElementById('fNext').addEventListener('click', nextField);
+document.getElementById('fUp').addEventListener('click', exitField);
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('keypadBasic').style.display = btn.dataset.tab==='basic' ? 'grid' : 'none';
+    document.getElementById('keypadFunc').style.display = btn.dataset.tab==='func' ? 'grid' : 'none';
+  });
+});
+
+document.getElementById('angleBtn').addEventListener('click', ()=>{
+  angleMode = angleMode==='deg' ? 'rad' : 'deg';
+  document.getElementById('angleBtn').textContent = angleMode==='deg' ? 'DEG' : 'RAD';
+});
+
+window.addEventListener('keydown', (e)=>{
+  const map = { '*':'×', '/':'÷', '+':'+', '-':'-' };
+  if(/^[0-9]$/.test(e.key)){ pushDigit(e.key); }
+  else if(e.key==='.'){ pushDigit('.'); }
+  else if(map[e.key]){ pushOp(map[e.key]); }
+  else if(e.key==='^'){ pushOp('^'); }
+  else if(e.key==='%'){ pushOp('%'); }
+  else if(e.key==='('){ pushParenOpen(); }
+  else if(e.key===')'){ pushParenClose(); }
+  else if(e.key==='!'){ pushFactorial(); }
+  else if(e.key==='Backspace'){ backspace(); }
+  else if(e.key==='Enter' || e.key==='='){ submit(); }
+  else if(e.key==='Escape'){ clearAll(); }
+  else if(e.key==='Tab'){ e.preventDefault(); nextField(); }
+});
+
+render();
+</script>
+</body>
+</html>
