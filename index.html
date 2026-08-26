@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <link rel="icon" type="image/png" href="数学AIアイコン.png">
+      <link rel="icon" type="image/png" href="数学AIアイコン.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>数学AI v0.6</title>
+<title>数学AI v0.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -187,7 +187,7 @@
       <circle cx="9" cy="9.5" r="1.6" fill="#3b6ea5"/>
     </svg>
     <h1>数学AI</h1>
-    <span class="badge">v0.6</span>
+    <span class="badge">v0.7</span>
     <div class="sub">計算チャット・方程式・グラフ・コマンド対応</div>
     <div class="angle-toggle">
       <button id="angleBtn" title="三角関数の角度単位">DEG</button>
@@ -198,8 +198,8 @@
     <div class="chat" id="chat">
       <div class="empty-hint" id="hint">
         キーボードで <code>3*(4+5)^2</code> のように直接タイプしてEnterでも、下のキーパッドをタップしても計算できます。<br>
-        <b>x^2-4=0</b> のような方程式(2次方程式は虚数解も)、<b>x+y=5; x-y=1</b> のように「;」でつなげるだけで連立方程式(コマンド不要、文字はa〜z何でもOK)。<br>
-        <code>sin(t)</code> のように1変数の式だけ打つと自動でグラフ表示。<code>/diff</code> 微分・<code>/stats</code> 統計・<code>/vec</code> ベクトル・<code>/matrix</code> 行列・<code>/seq</code> 数列にも対応。<br>
+        方程式(3次以上の複数解や虚数解も)・「x+y=5; x-y=1」のような連立方程式(非線形2元も)・<b>x^2&lt;9</b> のような不等式は、コマンド無しでそのまま入力できます。<br>
+        <code>sin(t)</code> のように1変数の式だけ打つと自動でグラフ表示。<code>/diff</code> 微分・<code>/stats</code> 統計・<code>/vec</code> ベクトル・<code>/matrix</code> 行列・<code>/seq</code> 数列にも対応。文字はa〜z何でも使えます。<br>
         コマンド一覧は <code>/all</code> と入力。
       </div>
     </div>
@@ -226,6 +226,7 @@
         <button class="tab-btn active" data-tab="basic">基本</button>
         <button class="tab-btn" data-tab="func">関数</button>
         <button class="tab-btn" data-tab="more">応用</button>
+        <button class="tab-btn" data-tab="ext">拡張</button>
       </div>
 
       <div class="keypad" id="keypadBasic">
@@ -289,6 +290,21 @@
         <button class="key" data-action="paren-close">)</button>
       </div>
 
+      <div class="keypad" id="keypadExt" style="display:none;">
+        <button class="key func" data-tpl="sinh">sinh</button>
+        <button class="key func" data-tpl="cosh">cosh</button>
+        <button class="key func" data-tpl="tanh">tanh</button>
+        <button class="key op" data-op="^">^</button>
+        <button class="key func" data-tpl="floor">floor</button>
+        <button class="key func" data-tpl="ceil">ceil</button>
+        <button class="key func" data-tpl="round">round</button>
+        <button class="key" data-action="paren-open">(</button>
+        <button class="key tplkey" data-tpl="gcd">gcd</button>
+        <button class="key tplkey" data-tpl="lcm">lcm</button>
+        <button class="key tplkey" data-tpl="logb">log_b</button>
+        <button class="key" data-action="paren-close">)</button>
+      </div>
+
       <div class="action-row">
         <button class="key back" data-action="back">⌫</button>
         <button class="key clear" data-action="clear">C</button>
@@ -329,23 +345,30 @@ let angleMode = 'deg';
 const TPL_DEFS = {
   sqrt:{slots:['body']}, sin:{slots:['body']}, cos:{slots:['body']}, tan:{slots:['body']},
   asin:{slots:['body']}, acos:{slots:['body']}, atan:{slots:['body']}, exp:{slots:['body']},
+  sinh:{slots:['body']}, cosh:{slots:['body']}, tanh:{slots:['body']},
+  floor:{slots:['body']}, ceil:{slots:['body']}, round:{slots:['body']},
   log:{slots:['body']}, ln:{slots:['body']}, abs:{slots:['body']},
   frac:{slots:['num','den']},
   sum:{slots:['lower','upper','body']},
   integral:{slots:['lower','upper','body']},
   nthroot:{slots:['index','body']},
-  ncr:{slots:['n','r']}, npr:{slots:['n','r']}
+  ncr:{slots:['n','r']}, npr:{slots:['n','r']},
+  gcd:{slots:['a','b']}, lcm:{slots:['a','b']}, logb:{slots:['base','x']}
 };
 const SLOT_LABELS = {
   sqrt:{body:'√の中身'}, sin:{body:'sinの中身'}, cos:{body:'cosの中身'}, tan:{body:'tanの中身'},
   asin:{body:'asin(逆正弦)の中身(-1〜1)'}, acos:{body:'acos(逆余弦)の中身(-1〜1)'}, atan:{body:'atan(逆正接)の中身'},
   exp:{body:'exp(eのべき乗)の中身'},
+  sinh:{body:'sinh(双曲線正弦)の中身'}, cosh:{body:'cosh(双曲線余弦)の中身'}, tanh:{body:'tanh(双曲線正接)の中身'},
+  floor:{body:'floor(切り捨て)の中身'}, ceil:{body:'ceil(切り上げ)の中身'}, round:{body:'round(四捨五入)の中身'},
   log:{body:'logの真数'}, ln:{body:'lnの真数'}, abs:{body:'絶対値の中身'},
   frac:{num:'分数の分子', den:'分数の分母'},
   sum:{lower:'Σの下端(開始値)', upper:'Σの上端(終了値)', body:'Σの中身の式(好きな1文字を変数に)'},
   integral:{lower:'∫の下端', upper:'∫の上端', body:'被積分関数(好きな1文字を変数に。三角関数は自動的にラジアン扱い)'},
   nthroot:{index:'root の次数(何乗根か)', body:'root の中身'},
-  ncr:{n:'nCrのn', r:'nCrのr'}, npr:{n:'nPrのn', r:'nPrのr'}
+  ncr:{n:'nCrのn', r:'nCrのr'}, npr:{n:'nPrのn', r:'nPrのr'},
+  gcd:{a:'gcdの1つ目の整数', b:'gcdの2つ目の整数'}, lcm:{a:'lcmの1つ目の整数', b:'lcmの2つ目の整数'},
+  logb:{base:'logの底', x:'logの真数'}
 };
 function labelFor(kind,key){ return (SLOT_LABELS[kind]&&SLOT_LABELS[kind][key]) || (kind+'.'+key); }
 
@@ -473,9 +496,10 @@ function backspace(){
 function clearAll(){ tokens=[]; focusPath=[]; render(); }
 
 /* ===================== テキスト→トークン列(貼り付け・REPL共通) ===================== */
+const TWO_ARG_FUNCS = ['gcd','lcm','logb'];
 function importText(str){
   let i = 0;
-  const FUNC_NAMES = ['sin','cos','tan','asin','acos','atan','exp','sqrt','log','ln','abs'];
+  const FUNC_NAMES = ['sin','cos','tan','asin','acos','atan','exp','sqrt','log','ln','abs','sinh','cosh','tanh','floor','ceil','round','gcd','lcm','logb'];
   function isDigit(c){ return c>='0'&&c<='9'; }
   function skipSpace(){ while(i<str.length && /\s/.test(str[i])) i++; }
   function lexNumber(){ let s=''; while(i<str.length && (isDigit(str[i])||str[i]==='.')) { s+=str[i]; i++; } return s; }
@@ -526,8 +550,19 @@ function importText(str){
       if(/[a-zA-Z]/.test(c)){
         const ident = lexIdent(); const lower = ident.toLowerCase();
         if(FUNC_NAMES.includes(lower) && str[i]==='('){
-          i++; maybeAutoMultiply(arr); const body=parseArray([')']); if(str[i]===')') i++;
-          arr.push({type:'tpl', kind:lower, slots:{body}}); continue;
+          i++; maybeAutoMultiply(arr);
+          if(TWO_ARG_FUNCS.includes(lower)){
+            const arg1 = parseArray([',']);
+            if(str[i]===',') i++;
+            const arg2 = parseArray([')']);
+            if(str[i]===')') i++;
+            const slotNames = lower==='logb' ? ['base','x'] : ['a','b'];
+            arr.push({type:'tpl', kind:lower, slots:{[slotNames[0]]:arg1, [slotNames[1]]:arg2}});
+          } else {
+            const body=parseArray([')']); if(str[i]===')') i++;
+            arr.push({type:'tpl', kind:lower, slots:{body}});
+          }
+          continue;
         }
         if(lower==='pi'){ maybeAutoMultiply(arr); arr.push({type:'pi'}); continue; }
         if(ident==='e'||ident==='E'){ maybeAutoMultiply(arr); arr.push({type:'e'}); continue; }
@@ -663,6 +698,7 @@ function factorialOf(v){
   let f=1; for(let i=2;i<=v;i++) f*=i;
   return f;
 }
+function gcdOf(x,y){ x=Math.abs(x); y=Math.abs(y); while(y){ const t=x%y; x=y; y=t; } return x; }
 
 function evalNode(node, steps, vars, opts){
   vars = vars || {}; opts = opts || {forceRad:false};
@@ -758,6 +794,35 @@ function evalNode(node, steps, vars, opts){
           const result = Math.exp(v.value);
           const approx = v.approx || Math.abs(result-Math.round(result))>1e-9;
           steps.push({expr:`exp(${v.text})`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'sinh': case 'cosh': case 'tanh': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          const result = Math[node.kind](v.value);
+          const nearInt = Math.abs(result - Math.round(result)) < 1e-9;
+          const approx = v.approx || !nearInt;
+          steps.push({expr:`${node.kind}(${v.text})`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'floor': { const v = evalNode(node.asts.body, steps, vars, opts); const result = Math.floor(v.value); steps.push({expr:`floor(${v.text})`, val:stepVal(result, v.approx), approx:v.approx}); return { value:result, text:formatNum(result), approx:v.approx }; }
+        case 'ceil': { const v = evalNode(node.asts.body, steps, vars, opts); const result = Math.ceil(v.value); steps.push({expr:`ceil(${v.text})`, val:stepVal(result, v.approx), approx:v.approx}); return { value:result, text:formatNum(result), approx:v.approx }; }
+        case 'round': { const v = evalNode(node.asts.body, steps, vars, opts); const result = Math.round(v.value); steps.push({expr:`round(${v.text})`, val:stepVal(result, v.approx), approx:v.approx}); return { value:result, text:formatNum(result), approx:v.approx }; }
+        case 'gcd': case 'lcm': {
+          const a = evalNode(node.asts.a, steps, vars, opts), b = evalNode(node.asts.b, steps, vars, opts);
+          if(!Number.isInteger(a.value) || !Number.isInteger(b.value)) throw new ParseError(`${node.kind}は整数のみ使えます`);
+          let result;
+          if(node.kind==='gcd') result = gcdOf(a.value, b.value);
+          else { const g = gcdOf(a.value, b.value); result = g===0 ? 0 : Math.abs(a.value*b.value)/g; }
+          steps.push({expr:`${node.kind}(${a.text},${b.text})`, val:stepVal(result,false), approx:false});
+          return { value:result, text:formatNum(result), approx:false };
+        }
+        case 'logb': {
+          const base = evalNode(node.asts.base, steps, vars, opts), x = evalNode(node.asts.x, steps, vars, opts);
+          if(base.value<=0 || base.value===1) throw new ParseError('logの底は1以外の正の数である必要があります');
+          if(x.value<=0) throw new ParseError('logの真数は正の数である必要があります');
+          const result = Math.log(x.value)/Math.log(base.value);
+          const approx = base.approx || x.approx || Math.abs(result-Math.round(result))>1e-9;
+          steps.push({expr:`log_${base.text}(${x.text})`, val:stepVal(result, approx), approx});
           return { value:result, text:formatNum(result), approx };
         }
         case 'log': {
@@ -927,7 +992,7 @@ function solveEquationText(text){
   if(vars.size>1) throw new ParseError(`未知数が複数あります(${[...vars].join(',')})。同じ行に「;」で式をつなげると連立方程式として解けます(例: x+y=5; x-y=1)`);
   const varName = [...vars][0];
   const diffEqAst = {type:'binop', op:'-', left:lhsAst, right:rhsAst};
-  const roots = findRoots(diffEqAst, varName, -1000, 1000, 4000);
+  const roots = findRoots(diffEqAst, varName, -1000, 1000, 8000);
   if(roots.length>0) return { varName, roots, complex:false };
   // 実数解が見つからない場合、2次式ならではの複素数解(虚数解)を試す
   const quad = tryFitQuadratic(diffEqAst, varName);
@@ -941,6 +1006,98 @@ function solveEquationText(text){
     }
   }
   throw new ParseError('この範囲(-1000〜1000)では実数解が見つかりませんでした');
+}
+
+/* ===================== 不等式 ===================== */
+function detectInequalityOp(text){
+  const ops = ['>=','<=','>','<'];
+  for(const op of ops){ const idx = text.indexOf(op); if(idx!==-1) return {op, idx}; }
+  return null;
+}
+function solveInequalityText(text){
+  const found = detectInequalityOp(text);
+  if(!found) throw new ParseError('不等号(<,>,<=,>=)が見つかりません');
+  const {op, idx} = found;
+  const lhsAst = parse(importText(text.slice(0,idx)));
+  const rhsAst = parse(importText(text.slice(idx+op.length)));
+  const vars = new Set([...freeVars(lhsAst,new Set()), ...freeVars(rhsAst,new Set())]);
+  if(vars.size===0) throw new ParseError('未知数(文字)が見つかりません');
+  if(vars.size>1) throw new ParseError(`未知数が複数あります(${[...vars].join(',')})`);
+  const varName = [...vars][0];
+  const diffIneqAst = {type:'binop', op:'-', left:lhsAst, right:rhsAst};
+  const xmin=-1000, xmax=1000;
+  const roots = findRoots(diffIneqAst, varName, xmin, xmax, 8000);
+  const breakpoints = [xmin, ...roots, xmax];
+  const rawIntervals = [];
+  for(let i=0;i<breakpoints.length-1;i++){
+    const a=breakpoints[i], b=breakpoints[i+1];
+    const mid=(a+b)/2;
+    let val; try{ val=evalAt(diffIneqAst,varName,mid); }catch(e){ val=NaN; }
+    if(!isFinite(val)) continue;
+    let satisfies;
+    switch(op){ case '>': satisfies=val>0; break; case '>=': satisfies=val>=0; break; case '<': satisfies=val<0; break; case '<=': satisfies=val<=0; break; }
+    rawIntervals.push({a,b,satisfies});
+  }
+  const merged=[];
+  for(const iv of rawIntervals){
+    if(!iv.satisfies) continue;
+    if(merged.length>0 && Math.abs(merged[merged.length-1].b-iv.a)<1e-9){ merged[merged.length-1].b = iv.b; }
+    else merged.push({a:iv.a,b:iv.b});
+  }
+  const includeEq = (op==='>=' || op==='<=');
+  return { varName, merged, xmin, xmax, includeEq, op };
+}
+function formatInequalitySolution({varName, merged, xmin, xmax, includeEq}){
+  if(merged.length===0) return '解なし';
+  if(merged.length===1 && merged[0].a<=xmin && merged[0].b>=xmax) return 'すべての実数';
+  const lt = includeEq ? '≤' : '<';
+  return merged.map(iv=>{
+    const leftInf = iv.a<=xmin, rightInf = iv.b>=xmax;
+    if(leftInf && rightInf) return 'すべての実数';
+    if(leftInf) return `${varName} ${lt} ${formatNum(iv.b)}`;
+    if(rightInf) return `${formatNum(iv.a)} ${lt} ${varName}`;
+    return `${formatNum(iv.a)} ${lt} ${varName} ${lt} ${formatNum(iv.b)}`;
+  }).join(' , ');
+}
+
+/* ===================== 非線形2元連立方程式(数値解, Newton法+多点探索) ===================== */
+function solveNonlinearSystem2(eqTexts, varNames){
+  const [v1,v2] = varNames;
+  const parsed = eqTexts.map(t=>{
+    const idx=t.indexOf('=');
+    return { lhsAst: parse(importText(t.slice(0,idx))), rhsAst: parse(importText(t.slice(idx+1))) };
+  });
+  function F(x,y){
+    return parsed.map(p=> evalNode(p.lhsAst,[],{[v1]:x,[v2]:y},{forceRad:true}).value - evalNode(p.rhsAst,[],{[v1]:x,[v2]:y},{forceRad:true}).value);
+  }
+  function numJac(x,y){
+    const h=1e-6; const f0=F(x,y); const fx=F(x+h,y), fy=F(x,y+h);
+    return [[ (fx[0]-f0[0])/h, (fy[0]-f0[0])/h ], [ (fx[1]-f0[1])/h, (fy[1]-f0[1])/h ]];
+  }
+  const solutions=[];
+  for(let sx=-10; sx<=10; sx+=2){
+    for(let sy=-10; sy<=10; sy+=2){
+      let x=sx, y=sy;
+      for(let iter=0; iter<80; iter++){
+        let f; try{ f=F(x,y); }catch(e){ break; }
+        if(!isFinite(f[0])||!isFinite(f[1])) break;
+        if(Math.abs(f[0])<1e-10 && Math.abs(f[1])<1e-10) break;
+        const J=numJac(x,y);
+        const det=J[0][0]*J[1][1]-J[0][1]*J[1][0];
+        if(Math.abs(det)<1e-12) break;
+        const dx=(J[1][1]*f[0]-J[0][1]*f[1])/det;
+        const dy=(-J[1][0]*f[0]+J[0][0]*f[1])/det;
+        x-=dx; y-=dy;
+        if(!isFinite(x)||!isFinite(y)) break;
+      }
+      let f; try{ f=F(x,y); }catch(e){ continue; }
+      if(isFinite(f[0])&&isFinite(f[1])&&Math.abs(f[0])<1e-6&&Math.abs(f[1])<1e-6){
+        if(!solutions.some(s=>Math.abs(s[0]-x)<1e-4 && Math.abs(s[1]-y)<1e-4)) solutions.push([x,y]);
+      }
+    }
+  }
+  if(solutions.length===0) throw new ParseError('解が見つかりませんでした(非線形の連立方程式)');
+  return solutions.map(s=>({[v1]:s[0], [v2]:s[1]}));
 }
 
 /* ===================== 記号微分 ===================== */
@@ -1008,6 +1165,21 @@ function diffAst(ast, varName){
           return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'×',left:ast.asts.body,right:{type:'num',value:Math.LN10}}};
         }
         case 'exp': return simplifyMul(diffAst(ast.asts.body,varName), ast);
+        case 'sinh': return simplifyMul(diffAst(ast.asts.body,varName), {type:'tpl',kind:'cosh',asts:{body:ast.asts.body}});
+        case 'cosh': return simplifyMul(diffAst(ast.asts.body,varName), {type:'tpl',kind:'sinh',asts:{body:ast.asts.body}});
+        case 'tanh': {
+          const u=ast.asts.body; const du=diffAst(u,varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'^',left:{type:'tpl',kind:'cosh',asts:{body:u}},right:{type:'num',value:2}}};
+        }
+        case 'floor': case 'ceil': case 'round': throw new ParseError(`${ast.kind}の微分は対応していません(不連続な関数のため)`);
+        case 'gcd': case 'lcm': throw new ParseError(`${ast.kind}の微分は対応していません(整数値関数のため)`);
+        case 'logb': {
+          if(containsVar(ast.asts.base, varName)) throw new ParseError('底に変数を含むlogbの微分は対応していません');
+          const du = diffAst(ast.asts.x, varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'×',left:ast.asts.x,right:{type:'tpl',kind:'ln',asts:{body:ast.asts.base}}}};
+        }
         case 'asin': {
           const u=ast.asts.body; const du=diffAst(u,varName);
           if(isZeroAst(du)) return {type:'num',value:0};
@@ -1048,6 +1220,9 @@ function astToText(ast){
         case 'frac': return `(${astToText(ast.asts.num)})/(${astToText(ast.asts.den)})`;
         case 'ncr': return `${astToText(ast.asts.n)}C${astToText(ast.asts.r)}`;
         case 'npr': return `${astToText(ast.asts.n)}P${astToText(ast.asts.r)}`;
+        case 'gcd': return `gcd(${astToText(ast.asts.a)},${astToText(ast.asts.b)})`;
+        case 'lcm': return `lcm(${astToText(ast.asts.a)},${astToText(ast.asts.b)})`;
+        case 'logb': return `log_${astToText(ast.asts.base)}(${astToText(ast.asts.x)})`;
         default: return `${ast.kind}(${astToText(ast.asts.body)})`;
       }
     }
@@ -1282,7 +1457,8 @@ const COMMANDS = [
   {name:'/deg', desc:'三角関数の角度モードを度数法(DEG)にします'},
   {name:'/rad', desc:'三角関数の角度モードを弧度法(RAD)にします'},
   {name:'/graph <式> [xmin] [xmax]', desc:'グラフを描画します(sin/cos/logなど何でも可) 例: /graph sin(x) -10 10 ※コマンド無しでもsin(t)等1変数の式を打つだけで自動グラフ表示されます'},
-  {name:'/solve <式1>; <式2>; …', desc:'方程式・連立方程式を解きます(コマンド無しでも「x+y=5; x-y=1」のように「;」で式をつなげるだけで連立方程式として解けます)'},
+  {name:'/solve <式1>; <式2>; …', desc:'方程式・連立方程式を解きます(2次方程式は虚数解、2元の非線形連立にも対応)。コマンド無しで「x+y=5; x-y=1」のように打つだけでも解けます'},
+  {name:'/ineq <不等式>', desc:'不等式を解きます(コマンド無しで「>」「<」を含む式を打つだけでも解けます) 例: /ineq x^2<9'},
   {name:'/diff <式>', desc:'1変数の式を微分します 例: /diff x^2*sin(x)'},
   {name:'/stats <数値,数値,…>', desc:'平均・分散・標準偏差・中央値などを計算します 例: /stats 1,2,3,4,5'},
   {name:'/vec <dot|cross|add|sub|mag|angle> [..] [..]', desc:'ベクトル計算 例: /vec dot [1,2,3] [4,5,6]'},
@@ -1355,6 +1531,19 @@ function renderTemplate(node, opts){
     wrap.appendChild(slotBox('n','func-body'));
     wrap.appendChild(textSpan(node.kind==='ncr'?'C':'P','combo-label'));
     wrap.appendChild(slotBox('r','func-body'));
+  } else if(node.kind==='gcd' || node.kind==='lcm'){
+    wrap.appendChild(textSpan(node.kind,'func-label'));
+    wrap.appendChild(textSpan('(','func-paren'));
+    wrap.appendChild(slotBox('a','func-body'));
+    wrap.appendChild(textSpan(',','func-paren'));
+    wrap.appendChild(slotBox('b','func-body'));
+    wrap.appendChild(textSpan(')','func-paren'));
+  } else if(node.kind==='logb'){
+    wrap.appendChild(textSpan('log','func-label'));
+    wrap.appendChild(slotBox('base','root-index'));
+    wrap.appendChild(textSpan('(','func-paren'));
+    wrap.appendChild(slotBox('x','func-body'));
+    wrap.appendChild(textSpan(')','func-paren'));
   } else {
     wrap.appendChild(textSpan(node.kind,'func-label'));
     wrap.appendChild(textSpan('(','func-paren'));
@@ -1464,17 +1653,20 @@ function addInfoBubble(html){
   row.appendChild(bubble); chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
 }
 function addEquationBubble({varName, roots}){
-  const stepsHtml = '<div class="steps">' + roots.map((r,i)=>{
+  const TRUNCATE_AT = 12;
+  const truncated = roots.length > TRUNCATE_AT;
+  const shown = truncated ? roots.slice(0, TRUNCATE_AT) : roots;
+  const stepsHtml = '<div class="steps">' + shown.map((r,i)=>{
     const isExact = Math.abs(r-Math.round(r)) < 1e-6;
     const val = isExact ? formatNum(Math.round(r)) : formatNum(r);
     return `<div class="step"><span class="num">${i+1}</span><span class="expr">解 ${i+1}</span><span class="arrow">→</span><span class="val${isExact?'':' is-approx'}">${varName} = ${escapeHtml(val)}</span></div>`;
-  }).join('') + '</div>';
-  const finalText = roots.map(r=>formatNum(r)).join(', ');
+  }).join('') + (truncated ? `<div class="step"><span class="expr">…他にも解があります(-1000〜1000の範囲で${roots.length}個見つかりました。周期的な式の可能性があります)</span></div>` : '') + '</div>';
+  const finalText = shown.map(r=>formatNum(r)).join(', ') + (truncated ? ' …' : '');
   const anyApprox = roots.some(r=>Math.abs(r-Math.round(r))>=1e-6);
   const bubble = document.createElement('div'); bubble.className = 'bubble ai';
   bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">${varName} =</span>${anyApprox?'<span class="approx-tag">約</span>':''}<span class="value">${escapeHtml(finalText)}</span></div>`;
   const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
-  copyBtn.addEventListener('click', ()=> copyToClipboard(`${varName} = ${finalText}`, copyBtn));
+  copyBtn.addEventListener('click', ()=> copyToClipboard(`${varName} = ${roots.map(formatNum).join(', ')}`, copyBtn));
   bubble.querySelector('.final').appendChild(copyBtn);
   const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
   chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
@@ -1534,9 +1726,31 @@ function addStatsBubble(s){
   const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
   chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
 }
+function addInequalityBubble(varName, solutionText){
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `<div class="final"><span class="label">${escapeHtml(varName)} の範囲</span><span class="value" style="font-size:18px;">${escapeHtml(solutionText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(solutionText, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addMultiSystemBubble(solutions){
+  const vars = Object.keys(solutions[0]);
+  const stepsHtml = '<div class="steps">' + solutions.map((sol,i)=>
+    `<div class="step"><span class="num">${i+1}</span><span class="expr">解 ${i+1}</span><span class="arrow">→</span><span class="val">${vars.map(v=>`${v}=${formatNum(sol[v])}`).join(', ')}</span></div>`
+  ).join('') + '</div>';
+  const finalText = solutions.map(sol=>'('+vars.map(v=>formatNum(sol[v])).join(', ')+')').join(', ');
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">こたえ(${vars.join(',')})</span><span class="value" style="font-size:15px;">${escapeHtml(finalText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(finalText, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
 function addValueBubble(label, valueText){
   const bubble = document.createElement('div'); bubble.className='bubble ai';
-  bubble.innerHTML = `<div class="final"><span class="label">${escapeHtml(label)}</span><span class="value" style="font-size:16px;">${escapeHtml(valueText)}</span></div>`;
   const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
   copyBtn.addEventListener('click', ()=> copyToClipboard(valueText, copyBtn));
   bubble.querySelector('.final').appendChild(copyBtn);
@@ -1590,6 +1804,15 @@ function runReplText(raw){
 
   if(text.startsWith('/')){ runCommand(text); return; }
 
+  // 不等号(<,>,<=,>=)を含む場合は不等式として解く
+  if(/[<>]/.test(text)){
+    try{
+      const r = solveInequalityText(text);
+      addInequalityBubble(r.varName, formatInequalitySolution(r));
+    }catch(err){ addAiBubble({ error: err.message || '不等式を解けませんでした' }); }
+    return;
+  }
+
   if(text.includes('=')){
     const eqParts = text.split(';').map(s=>s.trim()).filter(s=>s.length>0);
     if(eqParts.length > 1){
@@ -1597,7 +1820,11 @@ function runReplText(raw){
       try{
         const sol = solveLinearSystem(eqParts);
         addSystemBubble(sol);
-      }catch(err){ addAiBubble({ error: err.message || '連立方程式を解けませんでした' }); }
+      }catch(err){
+        const fallback = tryNonlinearFallback(eqParts);
+        if(fallback){ addMultiSystemBubble(fallback); }
+        else { addAiBubble({ error: err.message || '連立方程式を解けませんでした' }); }
+      }
       return;
     }
     try{
@@ -1622,6 +1849,24 @@ function runReplText(raw){
     }
   }
 }
+function tryNonlinearFallback(eqParts){
+  if(eqParts.length !== 2) return null;
+  try{
+    const allVars = new Set();
+    eqParts.forEach(t=>{
+      const idx=t.indexOf('=');
+      if(idx===-1) return;
+      const lhsAst = parse(importText(t.slice(0,idx)));
+      const rhsAst = parse(importText(t.slice(idx+1)));
+      freeVars(lhsAst,new Set()).forEach(v=>allVars.add(v));
+      freeVars(rhsAst,new Set()).forEach(v=>allVars.add(v));
+    });
+    const varNames = [...allVars].sort();
+    if(varNames.length !== 2) return null;
+    return solveNonlinearSystem2(eqParts, varNames);
+  }catch(e){ return null; }
+}
+
 
 function runCommand(text){
   const parts = text.trim().split(/\s+/);
@@ -1665,10 +1910,25 @@ function runCommand(text){
         const r = solveEquationText(eqs[0]);
         if(r.complex) addComplexEquationBubble(r); else addEquationBubble(r);
       } else {
-        const sol = solveLinearSystem(eqs);
-        addSystemBubble(sol);
+        try{
+          const sol = solveLinearSystem(eqs);
+          addSystemBubble(sol);
+        }catch(err){
+          const fallback = tryNonlinearFallback(eqs);
+          if(fallback){ addMultiSystemBubble(fallback); }
+          else { throw err; }
+        }
       }
     }catch(err){ addAiBubble({ error: err.message || '解けませんでした' }); }
+    return;
+  }
+
+  if(cmd==='/ineq'){
+    if(!args){ addAiBubble({error:'使い方: /ineq <不等式>  例: /ineq x^2<9  (「>」「<」を含む式ならコマンド無しでも自動で解けます)'}); return; }
+    try{
+      const r = solveInequalityText(args);
+      addInequalityBubble(r.varName, formatInequalitySolution(r));
+    }catch(err){ addAiBubble({ error: err.message || '不等式を解けませんでした' }); }
     return;
   }
 
@@ -1790,6 +2050,7 @@ function wireKeypad(id){
 wireKeypad('keypadBasic');
 wireKeypad('keypadFunc');
 wireKeypad('keypadMore');
+wireKeypad('keypadExt');
 
 document.getElementById('fNext').addEventListener('click', nextField);
 document.getElementById('fUp').addEventListener('click', exitField);
@@ -1801,6 +2062,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.getElementById('keypadBasic').style.display = btn.dataset.tab==='basic' ? 'grid' : 'none';
     document.getElementById('keypadFunc').style.display = btn.dataset.tab==='func' ? 'grid' : 'none';
     document.getElementById('keypadMore').style.display = btn.dataset.tab==='more' ? 'grid' : 'none';
+    document.getElementById('keypadExt').style.display = btn.dataset.tab==='ext' ? 'grid' : 'none';
   });
 });
 
