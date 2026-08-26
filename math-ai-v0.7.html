@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+      <link rel="icon" type="image/png" href="数学AIアイコン.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>数学AI v0.7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #f6f2e8; --paper-line: #ded5b8; --ink: #1f2c42; --ink-soft: #5b6579;
+    --red: #c1432f; --red-soft: #e7a89b; --blue: #3b6ea5; --green: #4c8c63;
+    --card: #fffdf7; --card-border: #e4dcc4; --shadow: rgba(31,44,66,0.10);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    font-family: 'Zen Kaku Gothic New', sans-serif; color: var(--ink);
+    background:
+      linear-gradient(var(--paper-line) 1px, transparent 1px) 0 0/100% 34px,
+      linear-gradient(90deg, var(--paper-line) 1px, transparent 1px) 0 0/34px 100%,
+      var(--paper);
+    background-attachment: fixed; overflow:hidden;
+  }
+  .app{ height:100dvh; width:100%; display:flex; flex-direction:column; position:relative; }
+  .app::before{ content:""; position:absolute; top:0; bottom:0; left:26px; width:2px; background: var(--red-soft); opacity:.5; pointer-events:none; z-index:0; }
+
+  header{ padding: 12px 20px 10px 40px; display:flex; align-items:center; gap:10px; border-bottom: 1.5px solid var(--paper-line); background: rgba(246,242,232,0.9); backdrop-filter: blur(2px); position: relative; z-index:6; flex-shrink:0; }
+  header h1{ font-family:'Kaisei Decol', serif; font-weight:700; font-size: 22px; margin:0; letter-spacing:.02em; }
+  header .badge{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color: var(--red); border:1.3px solid var(--red); border-radius: 20px; padding: 2px 7px; font-weight:700; transform: rotate(-4deg); white-space:nowrap; }
+  .sub{ font-size:11px; color: var(--ink-soft); display:none; }
+  .angle-toggle{ margin-left:auto; display:flex; align-items:center; gap:6px; font-family:'JetBrains Mono', monospace; font-size:12px; }
+  #angleBtn{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:12px; background: var(--ink); color:#f6f2e8; border:none; border-radius:20px; padding:5px 12px; cursor:pointer; }
+
+  .main{ flex:1; min-height:0; display:flex; flex-direction:column; position:relative; z-index:1; }
+  .chat{ flex:1; min-height:0; overflow-y:auto; padding: 16px 16px 16px 40px; display:flex; flex-direction:column; gap: 14px; }
+  .empty-hint{ margin-top: 18px; color: var(--ink-soft); font-size: 12.5px; line-height:1.9; text-align:center; padding: 0 16px; }
+  .empty-hint b{ color:var(--ink); }
+  .empty-hint code{ background: var(--card-border); border-radius:4px; padding:1px 5px; font-family:'JetBrains Mono',monospace; }
+
+  .row{ display:flex; }
+  .row.user{ justify-content:flex-end; }
+  .row.ai{ justify-content:flex-start; }
+
+  .bubble{ max-width: 86%; border-radius: 14px; padding: 12px 14px; box-shadow: 0 2px 6px var(--shadow); font-size: 15px; line-height:1.6; }
+  .bubble.user{ background: var(--ink); color: #f6f2e8; border-bottom-right-radius: 4px; font-family:'JetBrains Mono', monospace; font-size:16px; word-break:break-word; }
+  .bubble.ai{ background: var(--card); border: 1.4px solid var(--card-border); border-left: 3px solid var(--red); border-bottom-left-radius: 4px; color: var(--ink); min-width: 180px; }
+
+  .steps{ display:flex; flex-direction:column; gap:6px; margin: 2px 0 10px 0;}
+  .step{ display:flex; align-items:flex-start; gap:8px; font-family:'JetBrains Mono', monospace; font-size: 13px; color: var(--ink-soft); }
+  .step .num{ color: var(--red); font-weight:700; font-size:11px; background: rgba(193,67,47,0.08); border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+  .step .expr{ color: var(--ink); word-break: break-word; }
+  .step .arrow{ color: var(--red-soft); }
+  .step .val{ color: var(--red); font-weight:700; }
+  .step .val.is-approx::before{ content:"約 "; font-weight:600; font-size:11px; color: var(--ink-soft); }
+
+  .final{ margin-top: 4px; padding-top: 10px; border-top: 1.5px dashed var(--card-border); display:flex; align-items:baseline; gap:8px; font-family:'JetBrains Mono', monospace; flex-wrap:wrap; }
+  .final .label{ font-size:12px; color: var(--ink-soft); }
+  .final .approx-tag{ font-size:12px; color: var(--ink-soft); font-weight:600; }
+  .final .value{ font-size: 21px; font-weight:700; color: var(--red); text-decoration: underline wavy var(--red-soft) 2px; text-underline-offset: 4px; }
+  .no-steps{ font-size:12.5px; color: var(--ink-soft); margin-bottom:6px; }
+  .err-msg{ font-size:14px; color: var(--red); font-weight:600; }
+  .info-msg{ font-size:13.5px; color: var(--ink); }
+
+  .copy-btn{ margin-left:auto; font-family:'Zen Kaku Gothic New',sans-serif; font-size:11px; font-weight:700; border:1.3px solid var(--card-border); background: var(--paper); color: var(--ink-soft); border-radius:7px; padding:4px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; }
+  .copy-btn:hover{ border-color: var(--red-soft); color: var(--red); }
+  .copy-btn.copied{ color: var(--green); border-color: var(--green); }
+
+  .expr-line{ display:inline-flex; align-items:center; flex-wrap:wrap; gap:1px; font-family:'JetBrains Mono', monospace; }
+  .expr-line .op-span{ margin:0 5px; color: var(--blue); }
+  .expr-line .const-span{ color: var(--red); }
+  .expr-line .var-span{ color: var(--green); font-style:italic; font-weight:700; }
+  .slot-placeholder{ color:#b9a98f; padding:0 3px; }
+
+  .tpl{ display:inline-flex; align-items:center; margin: 0 2px; }
+  .slot{ display:inline-flex; align-items:center; min-width: 12px; min-height: 1.1em; padding: 1px 3px; border-radius:4px; }
+  .frac-col{ display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:0 2px; }
+  .frac-col .slot{ font-size: 0.92em; }
+  .frac-bar{ width:100%; height:1.6px; background: var(--ink); margin: 1px 0; align-self:stretch; }
+  .bound-col{ display:inline-flex; flex-direction:column; align-items:center; justify-content:center; margin-right:3px; }
+  .big-sign{ font-size:1.5em; line-height:0.8; color: var(--red); font-weight:700; margin: 1px 0; }
+  .bound-col .slot{ font-size:0.62em; color: var(--ink-soft); }
+  .tpl-body{ margin-left:2px; }
+  .dx-label{ margin-left:3px; font-style:italic; color: var(--ink-soft); }
+  .radical-sign{ font-size:1.1em; color: var(--ink); margin-right:1px; }
+  .radicand{ border-top: 1.6px solid var(--ink); padding-top:1px; }
+  .root-index{ font-size:0.6em; color: var(--red); align-self:flex-start; margin-right:-2px; }
+  .abs-bar{ font-weight:700; color: var(--ink); }
+  .abs-body{ padding: 0 2px; }
+  .func-label{ color: var(--red); font-weight:700; font-size:0.92em; }
+  .func-paren{ color: var(--ink-soft); }
+  .func-body{ padding: 0 1px; }
+  .combo-label{ font-size:0.85em; color: var(--ink-soft); align-self:flex-end; margin: 0 1px; }
+  .interactive .slot{ cursor:pointer; outline: 1px dashed transparent; }
+  .interactive .slot:hover{ outline-color: var(--red-soft); }
+  .interactive .active-slot{ outline: 1.6px solid var(--red) !important; background: rgba(193,67,47,0.08); }
+
+  /* ---- REPL(コマンドライン)入力 ---- */
+  .repl-row{ display:flex; align-items:center; gap:8px; background: var(--ink); border-radius:10px; padding:9px 12px; }
+  .repl-prompt{ font-family:'JetBrains Mono',monospace; color: var(--red-soft); font-weight:700; flex-shrink:0; }
+  #replInput{
+    flex:1; background:transparent; border:none; outline:none; color:#f6f2e8;
+    font-family:'JetBrains Mono',monospace; font-size:15px; min-width:0;
+  }
+  #replInput::placeholder{ color:#8a94a8; }
+  #replRun{ flex-shrink:0; background: var(--red); color:#fffdf7; border:none; border-radius:7px; padding:6px 12px; font-weight:700; font-size:12px; cursor:pointer; font-family:'Zen Kaku Gothic New',sans-serif; }
+
+  /* ---- composer ---- */
+  .composer{ border-top: 1.5px solid var(--paper-line); background: rgba(255,253,247,0.92); backdrop-filter: blur(2px); padding: 10px 14px 12px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; }
+  .preview-row{ display:flex; gap:6px; align-items:stretch; }
+  .preview-wrap{ flex:1; background: var(--card); border: 1.4px solid var(--card-border); border-radius: 10px; padding: 8px 12px; min-height: 40px; max-height: 16vh; overflow-y:auto; display:flex; align-items:center; box-shadow: inset 0 1px 3px rgba(31,44,66,0.05); font-size: 17px; font-weight:600; }
+  #preview .placeholder{ color:#b9b0a0; font-weight:400; font-family:'Zen Kaku Gothic New',sans-serif; font-size:13px; }
+  .cursor{ display:inline-block; width:2px; height:1em; background: var(--red); margin-left:2px; vertical-align:-2px; animation: blink 1s step-start infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .paste-btn{ flex-shrink:0; width:42px; border:1.4px solid var(--card-border); background: var(--card); border-radius:10px; color: var(--ink-soft); font-size:18px; cursor:pointer; }
+  .paste-btn:active{ background: var(--paper); }
+
+  .focus-toolbar{ display:none; align-items:center; gap:8px; font-size:11.5px; color: var(--ink-soft); background: rgba(193,67,47,0.06); border: 1px solid var(--red-soft); border-radius:8px; padding: 4px 9px; flex-wrap:wrap; }
+  .focus-toolbar.show{ display:flex; }
+  .focus-toolbar .fbtn{ font-family:'JetBrains Mono', monospace; font-size:11px; border:1px solid var(--card-border); background: var(--card); border-radius:6px; padding:3px 8px; cursor:pointer; color: var(--ink); }
+  .focus-toolbar .flabel{ font-weight:600; color: var(--red); width:100%; }
+  .focus-toolbar .spacer{ margin-left:auto; }
+
+  .tabs{ display:flex; gap:6px; }
+  .tab-btn{ flex:1; font-family:'Zen Kaku Gothic New', sans-serif; font-weight:700; font-size:11.5px; padding:5px 0; border-radius:8px; border: 1.3px solid var(--card-border); background: var(--card); color: var(--ink-soft); cursor:pointer; }
+  .tab-btn.active{ background: var(--ink); color:#f6f2e8; border-color: var(--ink); }
+
+  .keypad{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .key{ appearance:none; border:none; border-radius: 9px; padding: 9px 0; font-family:'JetBrains Mono', monospace; font-size: 14px; font-weight:600; background: var(--card); border: 1.3px solid var(--card-border); color: var(--ink); cursor:pointer; transition: transform .06s ease; box-shadow: 0 2px 0 var(--card-border); }
+  .key:active{ transform: translateY(2px); box-shadow: 0 0 0 var(--card-border); }
+  .key.op{ color: var(--blue); }
+  .key.func{ color: var(--red); font-size:12.5px; }
+  .key.tplkey{ color: var(--green); font-size: 12px; }
+
+  .action-row{ display:grid; grid-template-columns: 1fr 1fr 2fr; gap:6px; }
+  .action-row .key.back{ color: var(--ink-soft); }
+  .action-row .key.clear{ color: var(--red); border-color: var(--red-soft); }
+  .action-row .key.equals{ background: var(--red); color:#fffdf7; border-color: var(--red); box-shadow: 0 2px 0 #8f2f1f; font-size:14px; }
+  .action-row .key.equals:active{ box-shadow:0 0 0 #8f2f1f; }
+
+  ::-webkit-scrollbar{ width:6px; }
+  ::-webkit-scrollbar-thumb{ background: var(--card-border); border-radius:4px; }
+
+  .modal-overlay{ display:none; position:fixed; inset:0; background: rgba(31,44,66,0.35); align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{ background: var(--card); border-radius:14px; padding:18px; width:100%; max-width:380px; box-shadow: 0 8px 28px rgba(31,44,66,0.25); }
+  .modal-title{ font-family:'Kaisei Decol',serif; font-weight:700; font-size:17px; margin-bottom:10px; color: var(--ink); }
+  .modal-box textarea{ width:100%; border:1.4px solid var(--card-border); border-radius:8px; padding:9px 10px; font-family:'JetBrains Mono', monospace; font-size:14px; resize:vertical; color: var(--ink); background: var(--paper); }
+  .modal-hint{ font-size:11.5px; color: var(--ink-soft); margin-top:6px; line-height:1.6; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+  .modal-actions button{ font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:13px; border-radius:8px; padding:8px 14px; cursor:pointer; border:1.3px solid var(--card-border); background: var(--paper); color: var(--ink-soft); }
+  .modal-actions button.primary{ background: var(--red); border-color: var(--red); color:#fffdf7; }
+
+  .letter-grid{ display:grid; grid-template-columns: repeat(6,1fr); gap:6px; }
+  .letter-grid button{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:15px; border-radius:8px; border:1.3px solid var(--card-border); background: var(--paper); color: var(--green); padding:8px 0; cursor:pointer; }
+  .letter-grid button:active{ background: var(--card-border); }
+
+  .cmd-list{ display:flex; flex-direction:column; gap:8px; }
+  .cmd-item{ font-family:'JetBrains Mono',monospace; font-size:13px; }
+  .cmd-item .cname{ color: var(--red); font-weight:700; }
+  .cmd-item .cdesc{ font-family:'Zen Kaku Gothic New',sans-serif; color: var(--ink-soft); font-size:12.5px; display:block; margin-top:1px; }
+
+  .graph-caption{ font-family:'JetBrains Mono',monospace; font-size:12px; color: var(--ink-soft); margin-top:6px; }
+
+  @media (min-width: 860px){
+    .main{ flex-direction:row; }
+    .chat{ flex:1; padding: 22px 28px 22px 46px; }
+    .bubble{ max-width: 640px; }
+    .composer{ width: 420px; flex-shrink:0; border-top:none; border-left: 1.5px solid var(--paper-line); padding: 16px 18px; }
+    .preview-wrap{ font-size:19px; max-height: 20vh; }
+    .sub{ display:block; margin-left:14px; }
+    header{ padding-left:46px; }
+    .app::before{ display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
+      <rect x="4" y="4" width="22" height="22" rx="5" stroke="#1f2c42" stroke-width="2"/>
+      <path d="M9 14.5H21" stroke="#c1432f" stroke-width="2" stroke-linecap="round"/>
+      <path d="M9 19.5H16" stroke="#3b6ea5" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="21" cy="9.5" r="1.6" fill="#c1432f"/>
+      <circle cx="9" cy="9.5" r="1.6" fill="#3b6ea5"/>
+    </svg>
+    <h1>数学AI</h1>
+    <span class="badge">v0.7</span>
+    <div class="sub">計算チャット・方程式・グラフ・コマンド対応</div>
+    <div class="angle-toggle">
+      <button id="angleBtn" title="三角関数の角度単位">DEG</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="chat" id="chat">
+      <div class="empty-hint" id="hint">
+        キーボードで <code>3*(4+5)^2</code> のように直接タイプしてEnterでも、下のキーパッドをタップしても計算できます。<br>
+        方程式(3次以上の複数解や虚数解も)・「x+y=5; x-y=1」のような連立方程式(非線形2元も)・<b>x^2&lt;9</b> のような不等式は、コマンド無しでそのまま入力できます。<br>
+        <code>sin(t)</code> のように1変数の式だけ打つと自動でグラフ表示。<code>/diff</code> 微分・<code>/stats</code> 統計・<code>/vec</code> ベクトル・<code>/matrix</code> 行列・<code>/seq</code> 数列にも対応。文字はa〜z何でも使えます。<br>
+        コマンド一覧は <code>/all</code> と入力。
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="repl-row">
+        <span class="repl-prompt">&gt;</span>
+        <input id="replInput" type="text" placeholder="式や /all などのコマンドを入力してEnter" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button id="replRun">実行</button>
+      </div>
+
+      <div class="preview-row">
+        <div class="preview-wrap"><div id="preview"></div></div>
+        <button class="paste-btn" id="pasteBtn" title="式を貼り付け">📋</button>
+      </div>
+
+      <div class="focus-toolbar" id="focusToolbar">
+        <span class="flabel" id="focusLabel"></span>
+        <button class="fbtn" id="fUp">▲戻る</button>
+        <button class="fbtn spacer" id="fNext">次のらん▶</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="basic">基本</button>
+        <button class="tab-btn" data-tab="func">関数</button>
+        <button class="tab-btn" data-tab="more">応用</button>
+        <button class="tab-btn" data-tab="ext">拡張</button>
+      </div>
+
+      <div class="keypad" id="keypadBasic">
+        <button class="key" data-num="7">7</button>
+        <button class="key" data-num="8">8</button>
+        <button class="key" data-num="9">9</button>
+        <button class="key op" data-op="÷">÷</button>
+        <button class="key" data-num="4">4</button>
+        <button class="key" data-num="5">5</button>
+        <button class="key" data-num="6">6</button>
+        <button class="key op" data-op="×">×</button>
+        <button class="key" data-num="1">1</button>
+        <button class="key" data-num="2">2</button>
+        <button class="key" data-num="3">3</button>
+        <button class="key op" data-op="−" data-realop="-">−</button>
+        <button class="key" data-num="0">0</button>
+        <button class="key" data-num=".">.</button>
+        <button class="key" data-action="paren-open">(</button>
+        <button class="key" data-action="paren-close">)</button>
+        <button class="key func" data-action="pi">π</button>
+        <button class="key op" data-op="^">^</button>
+        <button class="key op" data-op="%">%</button>
+        <button class="key op" data-op="+">+</button>
+      </div>
+
+      <div class="keypad" id="keypadFunc" style="display:none;">
+        <button class="key func" data-tpl="sin">sin</button>
+        <button class="key func" data-tpl="cos">cos</button>
+        <button class="key func" data-tpl="tan">tan</button>
+        <button class="key tplkey" data-tpl="sqrt">√</button>
+        <button class="key func" data-tpl="log">log</button>
+        <button class="key func" data-tpl="ln">ln</button>
+        <button class="key func" data-action="e">e</button>
+        <button class="key tplkey" data-tpl="abs">|x|</button>
+        <button class="key tplkey" data-tpl="sum">Σ</button>
+        <button class="key tplkey" data-tpl="integral">∫</button>
+        <button class="key" data-action="var-n">n</button>
+        <button class="key" data-action="var-x">x</button>
+        <button class="key tplkey" data-tpl="frac">a/b</button>
+        <button class="key op" data-action="fact">n!</button>
+        <button class="key" data-action="paren-open">(</button>
+        <button class="key" data-action="paren-close">)</button>
+      </div>
+
+      <div class="keypad" id="keypadMore" style="display:none;">
+        <button class="key tplkey" data-tpl="nthroot">ⁿ√</button>
+        <button class="key tplkey" data-tpl="ncr">nCr</button>
+        <button class="key tplkey" data-tpl="npr">nPr</button>
+        <button class="key op" data-op="mod">mod</button>
+        <button class="key func" data-tpl="asin">asin</button>
+        <button class="key func" data-tpl="acos">acos</button>
+        <button class="key func" data-tpl="atan">atan</button>
+        <button class="key func" data-tpl="exp">exp</button>
+        <button class="key" data-action="letter-picker">a〜z</button>
+        <button class="key" data-action="var-n">n</button>
+        <button class="key" data-action="var-x">x</button>
+        <button class="key func" data-action="pi">π</button>
+        <button class="key func" data-action="e">e</button>
+        <button class="key op" data-op="^">^</button>
+        <button class="key" data-action="paren-open">(</button>
+        <button class="key" data-action="paren-close">)</button>
+      </div>
+
+      <div class="keypad" id="keypadExt" style="display:none;">
+        <button class="key func" data-tpl="sinh">sinh</button>
+        <button class="key func" data-tpl="cosh">cosh</button>
+        <button class="key func" data-tpl="tanh">tanh</button>
+        <button class="key op" data-op="^">^</button>
+        <button class="key func" data-tpl="floor">floor</button>
+        <button class="key func" data-tpl="ceil">ceil</button>
+        <button class="key func" data-tpl="round">round</button>
+        <button class="key" data-action="paren-open">(</button>
+        <button class="key tplkey" data-tpl="gcd">gcd</button>
+        <button class="key tplkey" data-tpl="lcm">lcm</button>
+        <button class="key tplkey" data-tpl="logb">log_b</button>
+        <button class="key" data-action="paren-close">)</button>
+      </div>
+
+      <div class="action-row">
+        <button class="key back" data-action="back">⌫</button>
+        <button class="key clear" data-action="clear">C</button>
+        <button class="key equals" data-action="equals">= 計算する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pasteModal">
+  <div class="modal-box">
+    <div class="modal-title">式を貼り付け</div>
+    <textarea id="pasteInput" rows="3" placeholder="例: 3*(4+5)^2 / sin(30)+sqrt(9) / 2^10"></textarea>
+    <div class="modal-hint">他のサイトからコピーした式をここに貼り付けて「挿入する」を押してください。×÷√πなどの記号や sin( ) log( ) にも対応しています(Σ・∫は現状キーパッドでの入力のみ対応)。</div>
+    <div class="modal-actions">
+      <button id="pasteCancel">キャンセル</button>
+      <button class="primary" id="pasteInsert">挿入する</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="letterModal">
+  <div class="modal-box">
+    <div class="modal-title">文字を選ぶ</div>
+    <div class="letter-grid" id="letterGrid"></div>
+    <div class="modal-actions">
+      <button id="letterCancel">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== 状態 ===================== */
+let tokens = [];
+let focusPath = [];
+let angleMode = 'deg';
+
+const TPL_DEFS = {
+  sqrt:{slots:['body']}, sin:{slots:['body']}, cos:{slots:['body']}, tan:{slots:['body']},
+  asin:{slots:['body']}, acos:{slots:['body']}, atan:{slots:['body']}, exp:{slots:['body']},
+  sinh:{slots:['body']}, cosh:{slots:['body']}, tanh:{slots:['body']},
+  floor:{slots:['body']}, ceil:{slots:['body']}, round:{slots:['body']},
+  log:{slots:['body']}, ln:{slots:['body']}, abs:{slots:['body']},
+  frac:{slots:['num','den']},
+  sum:{slots:['lower','upper','body']},
+  integral:{slots:['lower','upper','body']},
+  nthroot:{slots:['index','body']},
+  ncr:{slots:['n','r']}, npr:{slots:['n','r']},
+  gcd:{slots:['a','b']}, lcm:{slots:['a','b']}, logb:{slots:['base','x']}
+};
+const SLOT_LABELS = {
+  sqrt:{body:'√の中身'}, sin:{body:'sinの中身'}, cos:{body:'cosの中身'}, tan:{body:'tanの中身'},
+  asin:{body:'asin(逆正弦)の中身(-1〜1)'}, acos:{body:'acos(逆余弦)の中身(-1〜1)'}, atan:{body:'atan(逆正接)の中身'},
+  exp:{body:'exp(eのべき乗)の中身'},
+  sinh:{body:'sinh(双曲線正弦)の中身'}, cosh:{body:'cosh(双曲線余弦)の中身'}, tanh:{body:'tanh(双曲線正接)の中身'},
+  floor:{body:'floor(切り捨て)の中身'}, ceil:{body:'ceil(切り上げ)の中身'}, round:{body:'round(四捨五入)の中身'},
+  log:{body:'logの真数'}, ln:{body:'lnの真数'}, abs:{body:'絶対値の中身'},
+  frac:{num:'分数の分子', den:'分数の分母'},
+  sum:{lower:'Σの下端(開始値)', upper:'Σの上端(終了値)', body:'Σの中身の式(好きな1文字を変数に)'},
+  integral:{lower:'∫の下端', upper:'∫の上端', body:'被積分関数(好きな1文字を変数に。三角関数は自動的にラジアン扱い)'},
+  nthroot:{index:'root の次数(何乗根か)', body:'root の中身'},
+  ncr:{n:'nCrのn', r:'nCrのr'}, npr:{n:'nPrのn', r:'nPrのr'},
+  gcd:{a:'gcdの1つ目の整数', b:'gcdの2つ目の整数'}, lcm:{a:'lcmの1つ目の整数', b:'lcmの2つ目の整数'},
+  logb:{base:'logの底', x:'logの真数'}
+};
+function labelFor(kind,key){ return (SLOT_LABELS[kind]&&SLOT_LABELS[kind][key]) || (kind+'.'+key); }
+
+/* ===================== 状態操作(タップ入力) ===================== */
+function getActiveArray(){
+  if(!focusPath.length) return tokens;
+  const step = focusPath[focusPath.length-1];
+  return step.node.slots[step.key];
+}
+function arrayFromPath(path){
+  if(!path.length) return tokens;
+  const s = path[path.length-1];
+  return s.node.slots[s.key];
+}
+function isValueToken(t){
+  return !!t && (t.type==='num'||t.type==='pi'||t.type==='e'||t.type==='tpl'||t.type==='rparen'||t.type==='var');
+}
+function pushDigit(d){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(last && last.type==='num'){
+    if(d==='.' && last.value.includes('.')) return;
+    last.value += d;
+  } else {
+    if(isValueToken(last)) arr.push({type:'op', value:'×'});
+    arr.push({type:'num', value: d==='.' ? '0.' : d});
+  }
+  render();
+}
+function pushOp(op){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(!last){ if(op==='-'){ arr.push({type:'op', value:'-', unary:true}); render(); } return; }
+  if(last.type==='op'){
+    if(op==='-'){ arr.push({type:'op', value:'-', unary:true}); render(); return; }
+    arr[arr.length-1] = {type:'op', value:op}; render(); return;
+  }
+  if(last.type==='lparen'){ if(op==='-'){ arr.push({type:'op', value:'-', unary:true}); render(); } return; }
+  arr.push({type:'op', value:op});
+  render();
+}
+function pushParenOpen(){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(isValueToken(last)) arr.push({type:'op', value:'×'});
+  arr.push({type:'lparen'}); render();
+}
+function pushParenClose(){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(!last || last.type==='op' || last.type==='lparen') return;
+  let openCount=0;
+  arr.forEach(t=>{ if(t.type==='lparen') openCount++; if(t.type==='rparen') openCount--; });
+  if(openCount<=0) return;
+  arr.push({type:'rparen'}); render();
+}
+function pushConst(type){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(isValueToken(last)) arr.push({type:'op', value:'×'});
+  arr.push({type}); render();
+}
+function pushFactorial(){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(last && isValueToken(last)){ arr.push({type:'fact'}); render(); }
+}
+function pushVar(name){
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(isValueToken(last)) arr.push({type:'op', value:'×'});
+  arr.push({type:'var', name}); render();
+}
+function pushTemplate(kind){
+  const def = TPL_DEFS[kind];
+  const slots = {}; def.slots.forEach(s=>slots[s]=[]);
+  const node = {type:'tpl', kind, slots};
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(isValueToken(last)) arr.push({type:'op', value:'×'});
+  node.parentPath = focusPath.slice();
+  arr.push(node);
+  focusPath = node.parentPath.concat([{node, key: def.slots[0]}]);
+  render();
+}
+function setFocusTo(node,key){ focusPath = node.parentPath.concat([{node,key}]); render(); }
+function nextField(){
+  if(!focusPath.length) return;
+  const step = focusPath[focusPath.length-1];
+  const def = TPL_DEFS[step.node.kind];
+  const idx = def.slots.indexOf(step.key);
+  if(idx < def.slots.length-1){ focusPath = step.node.parentPath.concat([{node:step.node, key: def.slots[idx+1]}]); }
+  else { focusPath = step.node.parentPath.slice(); }
+  render();
+}
+function exitField(){
+  if(!focusPath.length) return;
+  const step = focusPath[focusPath.length-1];
+  focusPath = step.node.parentPath.slice();
+  render();
+}
+function backspace(){
+  const arr = getActiveArray();
+  if(arr.length>0){
+    const last = arr[arr.length-1];
+    if(last.type==='num' && last.value.length>1){ last.value = last.value.slice(0,-1); }
+    else { arr.pop(); }
+  } else if(focusPath.length>0){
+    const step = focusPath[focusPath.length-1];
+    const parentArr = arrayFromPath(step.node.parentPath);
+    const isEmpty = TPL_DEFS[step.node.kind].slots.every(k=>step.node.slots[k].length===0);
+    if(isEmpty){
+      const idx = parentArr.indexOf(step.node);
+      if(idx>-1) parentArr.splice(idx,1);
+      focusPath = step.node.parentPath.slice();
+    } else {
+      const def = TPL_DEFS[step.node.kind];
+      const idx2 = def.slots.indexOf(step.key);
+      if(idx2>0){ focusPath = step.node.parentPath.concat([{node:step.node, key:def.slots[idx2-1]}]); }
+      else { focusPath = step.node.parentPath.slice(); }
+    }
+  }
+  render();
+}
+function clearAll(){ tokens=[]; focusPath=[]; render(); }
+
+/* ===================== テキスト→トークン列(貼り付け・REPL共通) ===================== */
+const TWO_ARG_FUNCS = ['gcd','lcm','logb'];
+function importText(str){
+  let i = 0;
+  const FUNC_NAMES = ['sin','cos','tan','asin','acos','atan','exp','sqrt','log','ln','abs','sinh','cosh','tanh','floor','ceil','round','gcd','lcm','logb'];
+  function isDigit(c){ return c>='0'&&c<='9'; }
+  function skipSpace(){ while(i<str.length && /\s/.test(str[i])) i++; }
+  function lexNumber(){ let s=''; while(i<str.length && (isDigit(str[i])||str[i]==='.')) { s+=str[i]; i++; } return s; }
+  function lexIdent(){ let s=''; while(i<str.length && /[a-zA-Z]/.test(str[i])) { s+=str[i]; i++; } return s; }
+  function maybeAutoMultiply(arr){
+    const last = arr[arr.length-1];
+    if(last && (last.type==='num'||last.type==='pi'||last.type==='e'||last.type==='rparen'||last.type==='tpl'||last.type==='var')){
+      arr.push({type:'op', value:'×'});
+    }
+  }
+  function pushOpToArr(arr, op){
+    const last = arr[arr.length-1];
+    if(!last){
+      if(op==='-'){ arr.push({type:'op',value:'-',unary:true}); }
+      else { arr.push({type:'op',value:op}); }
+      return;
+    }
+    if(last.type==='op'){ if(op==='-'){ arr.push({type:'op',value:'-',unary:true}); return;} arr[arr.length-1]={type:'op',value:op}; return; }
+    if(last.type==='lparen'){ if(op==='-'){ arr.push({type:'op',value:'-',unary:true}); } return; }
+    arr.push({type:'op', value:op});
+  }
+  function parseArray(stopChars){
+    const arr = [];
+    while(true){
+      skipSpace();
+      if(i>=str.length) break;
+      const c = str[i];
+      if(stopChars.includes(c)) break;
+      if(isDigit(c) || c==='.'){ maybeAutoMultiply(arr); arr.push({type:'num', value: lexNumber()}); continue; }
+      if(c==='+'){ i++; pushOpToArr(arr,'+'); continue; }
+      if(c==='-' || c==='−'){ i++; pushOpToArr(arr,'-'); continue; }
+      if(c==='*' || c==='×' || c==='・'){ i++; pushOpToArr(arr,'×'); continue; }
+      if(c==='/' || c==='÷'){ i++; pushOpToArr(arr,'÷'); continue; }
+      if(c==='^'){ i++; pushOpToArr(arr,'^'); continue; }
+      if(c==='%'){ i++; pushOpToArr(arr,'%'); continue; }
+      if(c==='!'){ i++; if(arr.length) arr.push({type:'fact'}); continue; }
+      if(c==='('){ i++; maybeAutoMultiply(arr); arr.push({type:'lparen'}); const inner=parseArray([')']); inner.forEach(t=>arr.push(t)); if(str[i]===')') i++; arr.push({type:'rparen'}); continue; }
+      if(c===')'){ break; }
+      if(c==='|'){ i++; maybeAutoMultiply(arr); const body=parseArray(['|']); if(str[i]==='|') i++; arr.push({type:'tpl', kind:'abs', slots:{body}}); continue; }
+      if(c==='√'){ i++; maybeAutoMultiply(arr); let body; skipSpace();
+        if(str[i]==='('){ i++; body = parseArray([')']); if(str[i]===')') i++; }
+        else if(isDigit(str[i])||str[i]==='.'){ body = [{type:'num', value: lexNumber()}]; }
+        else { body = []; }
+        arr.push({type:'tpl', kind:'sqrt', slots:{body}}); continue;
+      }
+      if(c==='π'){ i++; maybeAutoMultiply(arr); arr.push({type:'pi'}); continue; }
+      if(c===','){ break; }
+      if(/[a-zA-Z]/.test(c)){
+        const ident = lexIdent(); const lower = ident.toLowerCase();
+        if(FUNC_NAMES.includes(lower) && str[i]==='('){
+          i++; maybeAutoMultiply(arr);
+          if(TWO_ARG_FUNCS.includes(lower)){
+            const arg1 = parseArray([',']);
+            if(str[i]===',') i++;
+            const arg2 = parseArray([')']);
+            if(str[i]===')') i++;
+            const slotNames = lower==='logb' ? ['base','x'] : ['a','b'];
+            arr.push({type:'tpl', kind:lower, slots:{[slotNames[0]]:arg1, [slotNames[1]]:arg2}});
+          } else {
+            const body=parseArray([')']); if(str[i]===')') i++;
+            arr.push({type:'tpl', kind:lower, slots:{body}});
+          }
+          continue;
+        }
+        if(lower==='pi'){ maybeAutoMultiply(arr); arr.push({type:'pi'}); continue; }
+        if(ident==='e'||ident==='E'){ maybeAutoMultiply(arr); arr.push({type:'e'}); continue; }
+        for(const ch of ident){ maybeAutoMultiply(arr); arr.push({type:'var', name: ch.toLowerCase()}); }
+        continue;
+      }
+      i++;
+    }
+    return arr;
+  }
+  return parseArray([]);
+}
+function assignParentPaths(arr, basePath){
+  arr.forEach(t=>{
+    if(t.type==='tpl'){
+      t.parentPath = basePath.slice();
+      const def = TPL_DEFS[t.kind];
+      def.slots.forEach(k=>{ assignParentPaths(t.slots[k], basePath.concat([{node:t, key:k}])); });
+    }
+  });
+}
+function insertImportedTokens(str){
+  const imported = importText(str);
+  if(imported.length===0) return false;
+  assignParentPaths(imported, focusPath.slice());
+  const arr = getActiveArray();
+  const last = arr[arr.length-1];
+  if(imported[0].type==='op' && imported[0].unary && isValueToken(last)){ imported[0] = {type:'op', value:'-'}; }
+  const startsWithValue = ['num','pi','e','var','tpl','lparen'].includes(imported[0].type);
+  if(startsWithValue && isValueToken(last)){ arr.push({type:'op', value:'×'}); }
+  imported.forEach(t=>arr.push(t));
+  render();
+  return true;
+}
+
+/* ===================== パーサー ===================== */
+class ParseError extends Error{}
+function parse(tokenList){
+  let pos = 0;
+  function peek(){ return tokenList[pos]; }
+  function next(){ return tokenList[pos++]; }
+  function parseExpr(){
+    let node = parseTerm();
+    while(peek() && peek().type==='op' && !peek().unary && (peek().value==='+' || peek().value==='-')){
+      const op = next().value; const right = parseTerm();
+      node = {type:'binop', op, left:node, right};
+    }
+    return node;
+  }
+  function parseTerm(){
+    let node = parsePower();
+    while(true){
+      const t = peek();
+      if(t && t.type==='op' && !t.unary && (t.value==='×' || t.value==='÷' || t.value==='%' || t.value==='mod')){
+        next(); const right = parsePower(); node = {type:'binop', op:t.value, left:node, right};
+      } else break;
+    }
+    return node;
+  }
+  function parsePower(){
+    const base = parseUnary();
+    const t = peek();
+    if(t && t.type==='op' && !t.unary && t.value==='^'){ next(); const exp = parsePower(); return {type:'binop', op:'^', left:base, right:exp}; }
+    return base;
+  }
+  function parseUnary(){
+    const t = peek();
+    if(t && t.type==='op' && t.unary && t.value==='-'){ next(); return {type:'neg', val: parseUnary()}; }
+    return parsePostfix();
+  }
+  function parsePostfix(){
+    let node = parsePrimary();
+    while(peek() && peek().type==='fact'){ next(); node = {type:'fact', val:node}; }
+    return node;
+  }
+  function parsePrimary(){
+    const t = peek();
+    if(!t) throw new ParseError('式が不完全です');
+    if(t.type==='num'){ next(); const v = parseFloat(t.value); if(isNaN(v)) throw new ParseError('数値の形式が正しくありません'); return {type:'num', value:v}; }
+    if(t.type==='pi'){ next(); return {type:'num', value:Math.PI, label:'π'}; }
+    if(t.type==='e'){ next(); return {type:'num', value:Math.E, label:'e'}; }
+    if(t.type==='var'){ next(); return {type:'var', name:t.name}; }
+    if(t.type==='lparen'){ next(); const inner = parseExpr(); const close = peek(); if(!close || close.type!=='rparen') throw new ParseError('括弧が閉じられていません'); next(); return {type:'group', val: inner}; }
+    if(t.type==='tpl'){
+      next(); const def = TPL_DEFS[t.kind]; const asts = {};
+      for(const s of def.slots){
+        const subTokens = t.slots[s];
+        if(subTokens.length===0) throw new ParseError(labelFor(t.kind,s) + 'が未入力です');
+        asts[s] = parse(subTokens);
+      }
+      return {type:'tpl', kind:t.kind, asts};
+    }
+    throw new ParseError('式の書き方が正しくありません');
+  }
+  const result = parseExpr();
+  if(pos < tokenList.length) throw new ParseError('式の書き方が正しくありません');
+  return result;
+}
+
+/* ===================== 自由変数の検出(Σ・∫・方程式用) ===================== */
+function freeVars(node, bound){
+  if(!node) return new Set();
+  switch(node.type){
+    case 'num': return new Set();
+    case 'var': return bound.has(node.name) ? new Set() : new Set([node.name]);
+    case 'group': case 'neg': case 'fact': return freeVars(node.val, bound);
+    case 'binop': return new Set([...freeVars(node.left, bound), ...freeVars(node.right, bound)]);
+    case 'tpl': {
+      const def = TPL_DEFS[node.kind];
+      if(node.kind==='sum' || node.kind==='integral'){
+        return new Set([...freeVars(node.asts.lower, bound), ...freeVars(node.asts.upper, bound)]);
+      }
+      let out = new Set();
+      def.slots.forEach(s=>{ freeVars(node.asts[s], bound).forEach(v=>out.add(v)); });
+      return out;
+    }
+  }
+  return new Set();
+}
+
+/* ===================== 評価 ===================== */
+function formatNum(v){
+  if(!isFinite(v)) throw new ParseError('計算できない値になりました');
+  let r = Math.round(v*1e9)/1e9;
+  if(Object.is(r,-0)) r = 0;
+  if(Math.abs(r) < 1e15) return r.toString();
+  return r.toExponential(4);
+}
+function stepVal(value, approx){ return (approx?'≈':'') + formatNum(value); }
+function factorialOf(v){
+  if(!Number.isInteger(v) || v<0) throw new ParseError('階乗は0以上の整数のみ計算できます');
+  if(v>170) throw new ParseError('数が大きすぎて計算できません');
+  let f=1; for(let i=2;i<=v;i++) f*=i;
+  return f;
+}
+function gcdOf(x,y){ x=Math.abs(x); y=Math.abs(y); while(y){ const t=x%y; x=y; y=t; } return x; }
+
+function evalNode(node, steps, vars, opts){
+  vars = vars || {}; opts = opts || {forceRad:false};
+  switch(node.type){
+    case 'num': return { value:node.value, text: node.label ? node.label : formatNum(node.value), approx:false };
+    case 'var': {
+      if(vars[node.name]===undefined) throw new ParseError(`変数 ${node.name} はΣ・∫の中だけで使えます`);
+      return { value: vars[node.name], text: node.name, approx:false };
+    }
+    case 'group': return evalNode(node.val, steps, vars, opts);
+    case 'neg': {
+      const v = evalNode(node.val, steps, vars, opts);
+      const result = -v.value;
+      steps.push({expr:`−${v.text}`, val:stepVal(result, v.approx), approx:v.approx});
+      return { value:result, text:formatNum(result), approx:v.approx };
+    }
+    case 'fact': {
+      const v = evalNode(node.val, steps, vars, opts);
+      const f = factorialOf(v.value);
+      steps.push({expr:`${v.text}!`, val:stepVal(f,false), approx:false});
+      return { value:f, text:formatNum(f), approx:false };
+    }
+    case 'binop': {
+      const l = evalNode(node.left, steps, vars, opts);
+      const r = evalNode(node.right, steps, vars, opts);
+      let result;
+      switch(node.op){
+        case '+': result = l.value + r.value; break;
+        case '-': result = l.value - r.value; break;
+        case '×': result = l.value * r.value; break;
+        case '÷': if(r.value===0) throw new ParseError('0では割れません'); result = l.value / r.value; break;
+        case '^': result = Math.pow(l.value, r.value); break;
+        case '%': result = l.value * (r.value/100); break;
+        case 'mod': if(r.value===0) throw new ParseError('0では割れません'); result = l.value - r.value*Math.floor(l.value/r.value); break;
+        default: throw new ParseError('未対応の演算子です');
+      }
+      const approx = l.approx || r.approx;
+      steps.push({expr:`${l.text} ${node.op} ${r.text}`, val:stepVal(result, approx), approx});
+      return { value:result, text:formatNum(result), approx };
+    }
+    case 'tpl': {
+      switch(node.kind){
+        case 'sqrt': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          if(v.value<0) throw new ParseError('負の数の√は計算できません');
+          const result = Math.sqrt(v.value);
+          const approx = v.approx || !(Number.isInteger(v.value) && Number.isInteger(result));
+          steps.push({expr:`√${v.text}`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'nthroot': {
+          const idx = evalNode(node.asts.index, steps, vars, opts);
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          if(idx.value===0) throw new ParseError('0乗根は計算できません');
+          let result;
+          if(v.value<0){
+            if(!Number.isInteger(idx.value) || idx.value%2===0) throw new ParseError('負の数の偶数乗根は計算できません');
+            result = -Math.pow(-v.value, 1/idx.value);
+          } else { result = Math.pow(v.value, 1/idx.value); }
+          const checkPow = Math.round(Math.pow(Math.round(result), idx.value));
+          const approx = v.approx || idx.approx || !(Number.isInteger(result) && checkPow===Math.round(v.value));
+          steps.push({expr:`${idx.text}√${v.text}`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'sin': case 'cos': case 'tan': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          const useRad = opts.forceRad || angleMode==='rad';
+          const result = Math[node.kind](useRad ? v.value : v.value*Math.PI/180);
+          const nearInt = Math.abs(result - Math.round(result)) < 1e-9 && Math.abs(result) <= 1.0000001;
+          const approx = v.approx || !nearInt;
+          steps.push({expr:`${node.kind}(${v.text}${useRad?'':'°'})`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'asin': case 'acos': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          if(v.value<-1 || v.value>1) throw new ParseError(`${node.kind}の中身は-1〜1の範囲である必要があります`);
+          const useRad = opts.forceRad || angleMode==='rad';
+          const rad = Math[node.kind](v.value);
+          const result = useRad ? rad : rad*180/Math.PI;
+          steps.push({expr:`${node.kind}(${v.text})${useRad?'':' (度で表示)'}`, val:stepVal(result, true), approx:true});
+          return { value:result, text:formatNum(result), approx:true };
+        }
+        case 'atan': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          const useRad = opts.forceRad || angleMode==='rad';
+          const rad = Math.atan(v.value);
+          const result = useRad ? rad : rad*180/Math.PI;
+          steps.push({expr:`atan(${v.text})${useRad?'':' (度で表示)'}`, val:stepVal(result, true), approx:true});
+          return { value:result, text:formatNum(result), approx:true };
+        }
+        case 'exp': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          const result = Math.exp(v.value);
+          const approx = v.approx || Math.abs(result-Math.round(result))>1e-9;
+          steps.push({expr:`exp(${v.text})`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'sinh': case 'cosh': case 'tanh': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          const result = Math[node.kind](v.value);
+          const nearInt = Math.abs(result - Math.round(result)) < 1e-9;
+          const approx = v.approx || !nearInt;
+          steps.push({expr:`${node.kind}(${v.text})`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'floor': { const v = evalNode(node.asts.body, steps, vars, opts); const result = Math.floor(v.value); steps.push({expr:`floor(${v.text})`, val:stepVal(result, v.approx), approx:v.approx}); return { value:result, text:formatNum(result), approx:v.approx }; }
+        case 'ceil': { const v = evalNode(node.asts.body, steps, vars, opts); const result = Math.ceil(v.value); steps.push({expr:`ceil(${v.text})`, val:stepVal(result, v.approx), approx:v.approx}); return { value:result, text:formatNum(result), approx:v.approx }; }
+        case 'round': { const v = evalNode(node.asts.body, steps, vars, opts); const result = Math.round(v.value); steps.push({expr:`round(${v.text})`, val:stepVal(result, v.approx), approx:v.approx}); return { value:result, text:formatNum(result), approx:v.approx }; }
+        case 'gcd': case 'lcm': {
+          const a = evalNode(node.asts.a, steps, vars, opts), b = evalNode(node.asts.b, steps, vars, opts);
+          if(!Number.isInteger(a.value) || !Number.isInteger(b.value)) throw new ParseError(`${node.kind}は整数のみ使えます`);
+          let result;
+          if(node.kind==='gcd') result = gcdOf(a.value, b.value);
+          else { const g = gcdOf(a.value, b.value); result = g===0 ? 0 : Math.abs(a.value*b.value)/g; }
+          steps.push({expr:`${node.kind}(${a.text},${b.text})`, val:stepVal(result,false), approx:false});
+          return { value:result, text:formatNum(result), approx:false };
+        }
+        case 'logb': {
+          const base = evalNode(node.asts.base, steps, vars, opts), x = evalNode(node.asts.x, steps, vars, opts);
+          if(base.value<=0 || base.value===1) throw new ParseError('logの底は1以外の正の数である必要があります');
+          if(x.value<=0) throw new ParseError('logの真数は正の数である必要があります');
+          const result = Math.log(x.value)/Math.log(base.value);
+          const approx = base.approx || x.approx || Math.abs(result-Math.round(result))>1e-9;
+          steps.push({expr:`log_${base.text}(${x.text})`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'log': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          if(v.value<=0) throw new ParseError('logの真数は正の数である必要があります');
+          const result = Math.log10(v.value);
+          const approx = v.approx || Math.abs(result-Math.round(result))>1e-9;
+          steps.push({expr:`log(${v.text})`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'ln': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          if(v.value<=0) throw new ParseError('lnの真数は正の数である必要があります');
+          const result = Math.log(v.value);
+          const approx = v.approx || Math.abs(result-Math.round(result))>1e-9;
+          steps.push({expr:`ln(${v.text})`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'abs': {
+          const v = evalNode(node.asts.body, steps, vars, opts);
+          const result = Math.abs(v.value);
+          steps.push({expr:`|${v.text}|`, val:stepVal(result, v.approx), approx:v.approx});
+          return { value:result, text:formatNum(result), approx:v.approx };
+        }
+        case 'frac': {
+          const l = evalNode(node.asts.num, steps, vars, opts);
+          const r = evalNode(node.asts.den, steps, vars, opts);
+          if(r.value===0) throw new ParseError('分母が0です');
+          const result = l.value / r.value;
+          const approx = l.approx || r.approx;
+          steps.push({expr:`${l.text}/${r.text}`, val:stepVal(result, approx), approx});
+          return { value:result, text:formatNum(result), approx };
+        }
+        case 'ncr': case 'npr': {
+          const n = evalNode(node.asts.n, steps, vars, opts);
+          const r = evalNode(node.asts.r, steps, vars, opts);
+          if(!Number.isInteger(n.value)||!Number.isInteger(r.value)||n.value<0||r.value<0) throw new ParseError('nCr/nPrは0以上の整数のみ使えます');
+          if(r.value>n.value) throw new ParseError('rはn以下にしてください');
+          let result;
+          if(node.kind==='npr') result = factorialOf(n.value)/factorialOf(n.value-r.value);
+          else result = factorialOf(n.value)/(factorialOf(r.value)*factorialOf(n.value-r.value));
+          const label = node.kind==='npr' ? 'P' : 'C';
+          steps.push({expr:`${n.text}${label}${r.text}`, val:stepVal(result,false), approx:false});
+          return { value:result, text:formatNum(result), approx:false };
+        }
+        case 'sum': {
+          const lo = evalNode(node.asts.lower, [], vars, opts);
+          const hi = evalNode(node.asts.upper, [], vars, opts);
+          const lower = Math.round(lo.value), upper = Math.round(hi.value);
+          if(upper < lower) throw new ParseError('Σの上端は下端以上にしてください');
+          if(upper - lower > 100000) throw new ParseError('Σの範囲が大きすぎます(10万項まで)');
+          const bound = new Set(Object.keys(vars));
+          const cand = freeVars(node.asts.body, bound);
+          if(cand.size > 1) throw new ParseError(`Σの中は1種類の文字だけを使ってください(見つかった文字: ${[...cand].join(',')})`);
+          const varName = cand.size===1 ? [...cand][0] : null;
+          const bodyOpts = Object.assign({}, opts, {forceRad:true});
+          let total = 0, runningApprox = lo.approx || hi.approx;
+          const preview = [];
+          for(let k=lower;k<=upper;k++){
+            const vars2 = varName ? Object.assign({}, vars, {[varName]:k}) : vars;
+            const r = evalNode(node.asts.body, [], vars2, bodyOpts);
+            total += r.value; runningApprox = runningApprox || r.approx;
+            if(preview.length<6) preview.push(formatNum(r.value));
+          }
+          const count = upper-lower+1;
+          const detail = count<=6 ? preview.join('+') : preview.slice(0,3).join('+')+` + …(全${count}項)`;
+          steps.push({expr:`Σ(${varName||'n'}=${lower}→${upper}) = ${detail}`, val:stepVal(total, runningApprox), approx:runningApprox});
+          return { value:total, text:formatNum(total), approx:runningApprox };
+        }
+        case 'integral': {
+          const lo = evalNode(node.asts.lower, [], vars, opts);
+          const hi = evalNode(node.asts.upper, [], vars, opts);
+          const a = lo.value, b = hi.value;
+          if(a===b){ steps.push({expr:`∫[${formatNum(a)}→${formatNum(b)}]`, val:'0', approx:false}); return {value:0,text:'0',approx:false}; }
+          const bound = new Set(Object.keys(vars));
+          const cand = freeVars(node.asts.body, bound);
+          if(cand.size > 1) throw new ParseError(`∫の中は1種類の文字だけを使ってください(見つかった文字: ${[...cand].join(',')})`);
+          const varName = cand.size===1 ? [...cand][0] : null;
+          // ★積分の中は角度モードに関わらず常にラジアンで評価する(微積分の数学的な標準に合わせるための修正)
+          const bodyOpts = Object.assign({}, opts, {forceRad:true});
+          const n = 4000; // 分割数(シンプソン則、精度確保のため余裕を持たせている)
+          const lower = Math.min(a,b), upper = Math.max(a,b);
+          const h = (upper-lower)/n;
+          function f(xv){ const vars2 = varName ? Object.assign({}, vars, {[varName]:xv}) : vars; return evalNode(node.asts.body, [], vars2, bodyOpts).value; }
+          let sum = f(lower) + f(upper);
+          for(let i=1;i<n;i++){
+            const xi = lower + i*h;
+            sum += (i%2===0 ? 2 : 4) * f(xi);
+          }
+          let result = (h/3)*sum;
+          if(a>b) result = -result;
+          steps.push({expr:`∫[${formatNum(a)}→${formatNum(b)}] f(${varName||'x'})d${varName||'x'} ≈ シンプソン近似(ラジアン, n=${n})`, val:stepVal(result,true), approx:true});
+          return { value:result, text:formatNum(result), approx:true };
+        }
+      }
+    }
+  }
+  throw new ParseError('式を解析できませんでした');
+}
+
+function compute(){
+  if(tokens.length===0) throw new ParseError('式を入力してください');
+  const ast = parse(tokens);
+  const steps = [];
+  const result = evalNode(ast, steps, {}, {forceRad:false});
+  return { steps, value: result.value, text: result.text, approx: result.approx };
+}
+function computeTokens(tokenArray){
+  if(tokenArray.length===0) throw new ParseError('式を入力してください');
+  const ast = parse(tokenArray);
+  const steps = [];
+  const result = evalNode(ast, steps, {}, {forceRad:false});
+  return { steps, value: result.value, text: result.text, approx: result.approx };
+}
+
+/* ===================== 方程式・連立方程式ソルバー ===================== */
+function evalAt(ast, varName, x){
+  return evalNode(ast, [], varName!==null ? {[varName]:x} : {}, {forceRad:true}).value;
+}
+function findRoots(ast, varName, xmin, xmax, stepsN){
+  const roots = [];
+  const dx = (xmax-xmin)/stepsN;
+  let prevX = xmin, prevY;
+  try{ prevY = evalAt(ast, varName, prevX); }catch(e){ prevY = NaN; }
+  for(let i=1;i<=stepsN;i++){
+    const x = xmin + i*dx;
+    let y;
+    try{ y = evalAt(ast, varName, x); }catch(e){ y = NaN; }
+    if(isFinite(prevY) && isFinite(y)){
+      if(prevY===0){ roots.push(prevX); }
+      else if(prevY*y < 0){
+        let lo=prevX, hi=x, flo=prevY;
+        for(let k=0;k<60;k++){
+          const mid=(lo+hi)/2;
+          const fmid = evalAt(ast, varName, mid);
+          if(flo*fmid<=0){ hi=mid; } else { lo=mid; flo=fmid; }
+        }
+        roots.push((lo+hi)/2);
+      }
+    }
+    prevX=x; prevY=y;
+  }
+  const merged=[];
+  roots.sort((a,b)=>a-b).forEach(r=>{
+    if(merged.length===0 || Math.abs(merged[merged.length-1]-r) > (xmax-xmin)/stepsN*3){ merged.push(r); }
+  });
+  return merged;
+}
+function tryFitQuadratic(ast, varName){
+  try{
+    const f = (x)=> evalAt(ast, varName, x);
+    const f0=f(0), f1=f(1), fm1=f(-1), f2=f(2);
+    const a = (f1+fm1-2*f0)/2, b=(f1-fm1)/2, c=f0;
+    if(Math.abs(a) < 1e-9) return null;
+    const predicted2 = 4*a+2*b+c;
+    if(Math.abs(predicted2-f2) > 1e-6*Math.max(1,Math.abs(f2))) return null;
+    return {a,b,c};
+  }catch(e){ return null; }
+}
+function solveEquationText(text){
+  const eqIdx = text.indexOf('=');
+  if(eqIdx===-1) throw new ParseError('方程式には = が必要です');
+  const lhsAst = parse(importText(text.slice(0,eqIdx)));
+  const rhsAst = parse(importText(text.slice(eqIdx+1)));
+  const vars = new Set([...freeVars(lhsAst,new Set()), ...freeVars(rhsAst,new Set())]);
+  if(vars.size===0) throw new ParseError('未知数(文字)が見つかりません');
+  if(vars.size>1) throw new ParseError(`未知数が複数あります(${[...vars].join(',')})。同じ行に「;」で式をつなげると連立方程式として解けます(例: x+y=5; x-y=1)`);
+  const varName = [...vars][0];
+  const diffEqAst = {type:'binop', op:'-', left:lhsAst, right:rhsAst};
+  const roots = findRoots(diffEqAst, varName, -1000, 1000, 8000);
+  if(roots.length>0) return { varName, roots, complex:false };
+  // 実数解が見つからない場合、2次式ならではの複素数解(虚数解)を試す
+  const quad = tryFitQuadratic(diffEqAst, varName);
+  if(quad){
+    const {a,b,c} = quad;
+    const disc = b*b - 4*a*c;
+    if(disc < 0){
+      const re = -b/(2*a);
+      const im = Math.sqrt(-disc)/(2*a);
+      return { varName, complex:true, re, im };
+    }
+  }
+  throw new ParseError('この範囲(-1000〜1000)では実数解が見つかりませんでした');
+}
+
+/* ===================== 不等式 ===================== */
+function detectInequalityOp(text){
+  const ops = ['>=','<=','>','<'];
+  for(const op of ops){ const idx = text.indexOf(op); if(idx!==-1) return {op, idx}; }
+  return null;
+}
+function solveInequalityText(text){
+  const found = detectInequalityOp(text);
+  if(!found) throw new ParseError('不等号(<,>,<=,>=)が見つかりません');
+  const {op, idx} = found;
+  const lhsAst = parse(importText(text.slice(0,idx)));
+  const rhsAst = parse(importText(text.slice(idx+op.length)));
+  const vars = new Set([...freeVars(lhsAst,new Set()), ...freeVars(rhsAst,new Set())]);
+  if(vars.size===0) throw new ParseError('未知数(文字)が見つかりません');
+  if(vars.size>1) throw new ParseError(`未知数が複数あります(${[...vars].join(',')})`);
+  const varName = [...vars][0];
+  const diffIneqAst = {type:'binop', op:'-', left:lhsAst, right:rhsAst};
+  const xmin=-1000, xmax=1000;
+  const roots = findRoots(diffIneqAst, varName, xmin, xmax, 8000);
+  const breakpoints = [xmin, ...roots, xmax];
+  const rawIntervals = [];
+  for(let i=0;i<breakpoints.length-1;i++){
+    const a=breakpoints[i], b=breakpoints[i+1];
+    const mid=(a+b)/2;
+    let val; try{ val=evalAt(diffIneqAst,varName,mid); }catch(e){ val=NaN; }
+    if(!isFinite(val)) continue;
+    let satisfies;
+    switch(op){ case '>': satisfies=val>0; break; case '>=': satisfies=val>=0; break; case '<': satisfies=val<0; break; case '<=': satisfies=val<=0; break; }
+    rawIntervals.push({a,b,satisfies});
+  }
+  const merged=[];
+  for(const iv of rawIntervals){
+    if(!iv.satisfies) continue;
+    if(merged.length>0 && Math.abs(merged[merged.length-1].b-iv.a)<1e-9){ merged[merged.length-1].b = iv.b; }
+    else merged.push({a:iv.a,b:iv.b});
+  }
+  const includeEq = (op==='>=' || op==='<=');
+  return { varName, merged, xmin, xmax, includeEq, op };
+}
+function formatInequalitySolution({varName, merged, xmin, xmax, includeEq}){
+  if(merged.length===0) return '解なし';
+  if(merged.length===1 && merged[0].a<=xmin && merged[0].b>=xmax) return 'すべての実数';
+  const lt = includeEq ? '≤' : '<';
+  return merged.map(iv=>{
+    const leftInf = iv.a<=xmin, rightInf = iv.b>=xmax;
+    if(leftInf && rightInf) return 'すべての実数';
+    if(leftInf) return `${varName} ${lt} ${formatNum(iv.b)}`;
+    if(rightInf) return `${formatNum(iv.a)} ${lt} ${varName}`;
+    return `${formatNum(iv.a)} ${lt} ${varName} ${lt} ${formatNum(iv.b)}`;
+  }).join(' , ');
+}
+
+/* ===================== 非線形2元連立方程式(数値解, Newton法+多点探索) ===================== */
+function solveNonlinearSystem2(eqTexts, varNames){
+  const [v1,v2] = varNames;
+  const parsed = eqTexts.map(t=>{
+    const idx=t.indexOf('=');
+    return { lhsAst: parse(importText(t.slice(0,idx))), rhsAst: parse(importText(t.slice(idx+1))) };
+  });
+  function F(x,y){
+    return parsed.map(p=> evalNode(p.lhsAst,[],{[v1]:x,[v2]:y},{forceRad:true}).value - evalNode(p.rhsAst,[],{[v1]:x,[v2]:y},{forceRad:true}).value);
+  }
+  function numJac(x,y){
+    const h=1e-6; const f0=F(x,y); const fx=F(x+h,y), fy=F(x,y+h);
+    return [[ (fx[0]-f0[0])/h, (fy[0]-f0[0])/h ], [ (fx[1]-f0[1])/h, (fy[1]-f0[1])/h ]];
+  }
+  const solutions=[];
+  for(let sx=-10; sx<=10; sx+=2){
+    for(let sy=-10; sy<=10; sy+=2){
+      let x=sx, y=sy;
+      for(let iter=0; iter<80; iter++){
+        let f; try{ f=F(x,y); }catch(e){ break; }
+        if(!isFinite(f[0])||!isFinite(f[1])) break;
+        if(Math.abs(f[0])<1e-10 && Math.abs(f[1])<1e-10) break;
+        const J=numJac(x,y);
+        const det=J[0][0]*J[1][1]-J[0][1]*J[1][0];
+        if(Math.abs(det)<1e-12) break;
+        const dx=(J[1][1]*f[0]-J[0][1]*f[1])/det;
+        const dy=(-J[1][0]*f[0]+J[0][0]*f[1])/det;
+        x-=dx; y-=dy;
+        if(!isFinite(x)||!isFinite(y)) break;
+      }
+      let f; try{ f=F(x,y); }catch(e){ continue; }
+      if(isFinite(f[0])&&isFinite(f[1])&&Math.abs(f[0])<1e-6&&Math.abs(f[1])<1e-6){
+        if(!solutions.some(s=>Math.abs(s[0]-x)<1e-4 && Math.abs(s[1]-y)<1e-4)) solutions.push([x,y]);
+      }
+    }
+  }
+  if(solutions.length===0) throw new ParseError('解が見つかりませんでした(非線形の連立方程式)');
+  return solutions.map(s=>({[v1]:s[0], [v2]:s[1]}));
+}
+
+/* ===================== 記号微分 ===================== */
+function isZeroAst(a){ return a.type==='num' && a.value===0; }
+function isOneAst(a){ return a.type==='num' && a.value===1; }
+function simplifyAdd(a,b){ if(isZeroAst(a)) return b; if(isZeroAst(b)) return a; return {type:'binop',op:'+',left:a,right:b}; }
+function simplifySub(a,b){ if(isZeroAst(b)) return a; if(isZeroAst(a)) return {type:'neg',val:b}; return {type:'binop',op:'-',left:a,right:b}; }
+function simplifyMul(a,b){ if(isZeroAst(a)||isZeroAst(b)) return {type:'num',value:0}; if(isOneAst(a)) return b; if(isOneAst(b)) return a; return {type:'binop',op:'×',left:a,right:b}; }
+function containsVar(ast,varName){ return freeVars(ast,new Set()).has(varName); }
+
+function diffAst(ast, varName){
+  switch(ast.type){
+    case 'num': return {type:'num', value:0};
+    case 'var': return ast.name===varName ? {type:'num',value:1} : {type:'num',value:0};
+    case 'group': return diffAst(ast.val, varName);
+    case 'neg': return {type:'neg', val: diffAst(ast.val, varName)};
+    case 'fact': throw new ParseError('階乗の微分は非対応です');
+    case 'binop':
+      switch(ast.op){
+        case '+': return simplifyAdd(diffAst(ast.left,varName), diffAst(ast.right,varName));
+        case '-': return simplifySub(diffAst(ast.left,varName), diffAst(ast.right,varName));
+        case '×': return simplifyAdd(simplifyMul(diffAst(ast.left,varName), ast.right), simplifyMul(ast.left, diffAst(ast.right,varName)));
+        case '÷': {
+          const num = simplifySub(simplifyMul(diffAst(ast.left,varName), ast.right), simplifyMul(ast.left, diffAst(ast.right,varName)));
+          if(isZeroAst(num)) return {type:'num', value:0};
+          const den = {type:'binop', op:'^', left: ast.right, right:{type:'num',value:2}};
+          return {type:'binop', op:'÷', left:num, right:den};
+        }
+        case '^': {
+          const f=ast.left, g=ast.right;
+          const fHas = containsVar(f, varName), gHas = containsVar(g, varName);
+          if(!gHas){
+            const newExp = {type:'binop', op:'-', left:g, right:{type:'num',value:1}};
+            const powTerm = {type:'binop', op:'^', left:f, right:newExp};
+            return simplifyMul(simplifyMul(g, powTerm), diffAst(f,varName));
+          } else if(!fHas){
+            const term = simplifyMul(ast, {type:'tpl',kind:'ln',asts:{body:f}});
+            return simplifyMul(term, diffAst(g,varName));
+          } else {
+            const t1 = simplifyMul(diffAst(g,varName), {type:'tpl',kind:'ln',asts:{body:f}});
+            const t2 = simplifyMul(g, {type:'binop', op:'÷', left:diffAst(f,varName), right:f});
+            return simplifyMul(ast, simplifyAdd(t1,t2));
+          }
+        }
+        default: throw new ParseError(`${ast.op}の微分は非対応です`);
+      }
+    case 'tpl':
+      switch(ast.kind){
+        case 'sqrt': {
+          const u=ast.asts.body; const du=diffAst(u,varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'×',left:{type:'num',value:2},right:{type:'tpl',kind:'sqrt',asts:{body:u}}}};
+        }
+        case 'sin': return simplifyMul(diffAst(ast.asts.body,varName), {type:'tpl',kind:'cos',asts:{body:ast.asts.body}});
+        case 'cos': return simplifyMul({type:'neg', val:diffAst(ast.asts.body,varName)}, {type:'tpl',kind:'sin',asts:{body:ast.asts.body}});
+        case 'tan': {
+          const u=ast.asts.body; const du=diffAst(u,varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'^',left:{type:'tpl',kind:'cos',asts:{body:u}},right:{type:'num',value:2}}};
+        }
+        case 'ln': { const du=diffAst(ast.asts.body,varName); return isZeroAst(du) ? {type:'num',value:0} : {type:'binop', op:'÷', left:du, right:ast.asts.body}; }
+        case 'log': {
+          const du=diffAst(ast.asts.body,varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'×',left:ast.asts.body,right:{type:'num',value:Math.LN10}}};
+        }
+        case 'exp': return simplifyMul(diffAst(ast.asts.body,varName), ast);
+        case 'sinh': return simplifyMul(diffAst(ast.asts.body,varName), {type:'tpl',kind:'cosh',asts:{body:ast.asts.body}});
+        case 'cosh': return simplifyMul(diffAst(ast.asts.body,varName), {type:'tpl',kind:'sinh',asts:{body:ast.asts.body}});
+        case 'tanh': {
+          const u=ast.asts.body; const du=diffAst(u,varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'^',left:{type:'tpl',kind:'cosh',asts:{body:u}},right:{type:'num',value:2}}};
+        }
+        case 'floor': case 'ceil': case 'round': throw new ParseError(`${ast.kind}の微分は対応していません(不連続な関数のため)`);
+        case 'gcd': case 'lcm': throw new ParseError(`${ast.kind}の微分は対応していません(整数値関数のため)`);
+        case 'logb': {
+          if(containsVar(ast.asts.base, varName)) throw new ParseError('底に変数を含むlogbの微分は対応していません');
+          const du = diffAst(ast.asts.x, varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'×',left:ast.asts.x,right:{type:'tpl',kind:'ln',asts:{body:ast.asts.base}}}};
+        }
+        case 'asin': {
+          const u=ast.asts.body; const du=diffAst(u,varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'tpl',kind:'sqrt',asts:{body:{type:'binop',op:'-',left:{type:'num',value:1},right:{type:'binop',op:'^',left:u,right:{type:'num',value:2}}}}}};
+        }
+        case 'acos': { const inner = diffAst({type:'tpl',kind:'asin',asts:ast.asts}, varName); return isZeroAst(inner) ? {type:'num',value:0} : {type:'neg', val: inner}; }
+        case 'atan': {
+          const u=ast.asts.body; const du=diffAst(u,varName);
+          if(isZeroAst(du)) return {type:'num',value:0};
+          return {type:'binop', op:'÷', left:du, right:{type:'binop',op:'+',left:{type:'num',value:1},right:{type:'binop',op:'^',left:u,right:{type:'num',value:2}}}};
+        }
+        case 'abs': throw new ParseError('絶対値の微分は不連続点があるため非対応です');
+        case 'frac': return diffAst({type:'binop', op:'÷', left:ast.asts.num, right:ast.asts.den}, varName);
+        case 'nthroot': return diffAst({type:'binop', op:'^', left:ast.asts.body, right:{type:'binop',op:'÷',left:{type:'num',value:1},right:ast.asts.index}}, varName);
+        case 'sum': case 'integral': throw new ParseError('Σ・∫の微分は非対応です');
+        case 'ncr': case 'npr': throw new ParseError('nCr・nPrの微分は非対応です');
+      }
+  }
+  throw new ParseError('この式の微分には対応していません');
+}
+function astToText(ast){
+  function wrap(a){ return (a.type==='binop'||a.type==='neg') ? `(${astToText(a)})` : astToText(a); }
+  switch(ast.type){
+    case 'num': return ast.label || formatNum(ast.value);
+    case 'var': return ast.name;
+    case 'group': return `(${astToText(ast.val)})`;
+    case 'neg': return `-${wrap(ast.val)}`;
+    case 'fact': return `${wrap(ast.val)}!`;
+    case 'binop': {
+      const opSym = ast.op==='×'?'*':ast.op==='÷'?'/':ast.op;
+      return `${wrap(ast.left)}${opSym}${wrap(ast.right)}`;
+    }
+    case 'tpl': {
+      switch(ast.kind){
+        case 'sqrt': return `sqrt(${astToText(ast.asts.body)})`;
+        case 'nthroot': return `${astToText(ast.asts.index)}root(${astToText(ast.asts.body)})`;
+        case 'abs': return `|${astToText(ast.asts.body)}|`;
+        case 'frac': return `(${astToText(ast.asts.num)})/(${astToText(ast.asts.den)})`;
+        case 'ncr': return `${astToText(ast.asts.n)}C${astToText(ast.asts.r)}`;
+        case 'npr': return `${astToText(ast.asts.n)}P${astToText(ast.asts.r)}`;
+        case 'gcd': return `gcd(${astToText(ast.asts.a)},${astToText(ast.asts.b)})`;
+        case 'lcm': return `lcm(${astToText(ast.asts.a)},${astToText(ast.asts.b)})`;
+        case 'logb': return `log_${astToText(ast.asts.base)}(${astToText(ast.asts.x)})`;
+        default: return `${ast.kind}(${astToText(ast.asts.body)})`;
+      }
+    }
+  }
+  return '?';
+}
+function diffText(exprText){
+  const ast = parse(importText(exprText));
+  const vars = freeVars(ast, new Set());
+  if(vars.size===0) throw new ParseError('文字(変数)が見つかりません');
+  if(vars.size>1) throw new ParseError(`変数が複数あります(${[...vars].join(',')})。1変数の式にしてください`);
+  const varName = [...vars][0];
+  const d = diffAst(ast, varName);
+  return { varName, derivativeText: astToText(d), derivativeAst: d };
+}
+
+/* ===================== 統計 ===================== */
+function computeStats(numbers){
+  if(numbers.length===0) throw new ParseError('数値がありません');
+  const n = numbers.length;
+  const sum = numbers.reduce((a,b)=>a+b,0);
+  const mean = sum/n;
+  const sorted = numbers.slice().sort((a,b)=>a-b);
+  const median = n%2===1 ? sorted[(n-1)/2] : (sorted[n/2-1]+sorted[n/2])/2;
+  const sqDiffSum = numbers.reduce((a,b)=>a+(b-mean)*(b-mean),0);
+  const popVar = sqDiffSum/n;
+  const popStd = Math.sqrt(popVar);
+  const sampleVar = n>1 ? sqDiffSum/(n-1) : NaN;
+  const sampleStd = n>1 ? Math.sqrt(sampleVar) : NaN;
+  return { n, sum, mean, median, min:sorted[0], max:sorted[n-1], popVar, popStd, sampleVar, sampleStd };
+}
+
+/* ===================== ベクトル ===================== */
+function parseVectorText(text){
+  text = text.trim();
+  if(!text.startsWith('[') || !text.endsWith(']')) throw new ParseError('ベクトルは [1,2,3] のように書いてください');
+  const inner = text.slice(1,-1);
+  return inner.split(',').map(s=>computeTokens(importText(s.trim())).value);
+}
+function vecDot(a,b){ if(a.length!==b.length) throw new ParseError('ベクトルの次元が違います'); return a.reduce((s,v,i)=>s+v*b[i],0); }
+function vecCross(a,b){ if(a.length!==3||b.length!==3) throw new ParseError('外積は3次元ベクトルのみ対応です'); return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function vecMag(a){ return Math.sqrt(a.reduce((s,v)=>s+v*v,0)); }
+function vecAdd(a,b){ if(a.length!==b.length) throw new ParseError('ベクトルの次元が違います'); return a.map((v,i)=>v+b[i]); }
+function vecSub(a,b){ if(a.length!==b.length) throw new ParseError('ベクトルの次元が違います'); return a.map((v,i)=>v-b[i]); }
+function vecAngleDeg(a,b){ const d=vecDot(a,b); const m=vecMag(a)*vecMag(b); if(m===0) throw new ParseError('ゼロベクトルとの角度は定義できません'); const c=Math.max(-1,Math.min(1,d/m)); return Math.acos(c)*180/Math.PI; }
+
+/* ===================== 行列 ===================== */
+function parseMatrixText(text){
+  text = text.trim();
+  if(!text.startsWith('[') || !text.endsWith(']')) throw new ParseError('行列は [[1,2],[3,4]] のように書いてください');
+  const inner = text.slice(1,-1);
+  const rows=[]; let depth=0, current='';
+  for(const ch of inner){
+    if(ch==='['){ depth++; if(depth===1){ current=''; continue; } }
+    if(ch===']'){ depth--; if(depth===0){ rows.push(current); continue; } }
+    if(depth>=1) current+=ch;
+  }
+  if(rows.length===0) throw new ParseError('行列の形式が正しくありません');
+  const M = rows.map(r=>r.split(',').map(s=>computeTokens(importText(s.trim())).value));
+  const width = M[0].length;
+  if(!M.every(r=>r.length===width)) throw new ParseError('各行の列数が揃っていません');
+  return M;
+}
+function matDet(M){
+  const n=M.length;
+  if(n!==M[0].length) throw new ParseError('行列式は正方行列のみ計算できます');
+  if(n===1) return M[0][0];
+  if(n===2) return M[0][0]*M[1][1]-M[0][1]*M[1][0];
+  let det=0;
+  for(let j=0;j<n;j++){
+    const minor = M.slice(1).map(row=>row.filter((_,ci)=>ci!==j));
+    det += (j%2===0?1:-1)*M[0][j]*matDet(minor);
+  }
+  return det;
+}
+function matMul(A,B){
+  if(A[0].length !== B.length) throw new ParseError('行列の積: 左の列数と右の行数が一致しません');
+  return A.map(row => B[0].map((_,j)=> row.reduce((s,v,k)=>s+v*B[k][j],0)));
+}
+function matInv(M){
+  const n=M.length;
+  if(n!==M[0].length) throw new ParseError('逆行列は正方行列のみ計算できます');
+  const aug = M.map((row,i)=>[...row, ...Array.from({length:n},(_,j)=>i===j?1:0)]);
+  for(let col=0; col<n; col++){
+    let pivotRow=col;
+    for(let r=col+1;r<n;r++){ if(Math.abs(aug[r][col])>Math.abs(aug[pivotRow][col])) pivotRow=r; }
+    if(Math.abs(aug[pivotRow][col])<1e-10) throw new ParseError('この行列は逆行列を持ちません(正則ではありません)');
+    [aug[col],aug[pivotRow]]=[aug[pivotRow],aug[col]];
+    const pv=aug[col][col];
+    for(let c=0;c<2*n;c++) aug[col][c]/=pv;
+    for(let r=0;r<n;r++){ if(r===col) continue; const factor=aug[r][col]; for(let c=0;c<2*n;c++) aug[r][c]-=factor*aug[col][c]; }
+  }
+  return aug.map(row=>row.slice(n));
+}
+
+/* ===================== 数列 ===================== */
+function computeSequence(initText, recurText, nText){
+  const initVals = initText.split(',').map(s=>computeTokens(importText(s.trim())).value);
+  const n = Math.round(computeTokens(importText(nText)).value);
+  if(n<1) throw new ParseError('項数nは1以上にしてください');
+  if(n>100000) throw new ParseError('項数が多すぎます(10万項まで)');
+  const recurAst = parse(importText(recurText));
+  const terms = [...initVals];
+  if(n <= terms.length) return { terms: terms.slice(0,n), n };
+  for(let k=terms.length+1; k<=n; k++){
+    const vars = { n:k, a: terms[terms.length-1] };
+    if(terms.length>=2) vars.b = terms[terms.length-2];
+    const val = evalNode(recurAst, [], vars, {forceRad:true}).value;
+    terms.push(val);
+  }
+  return { terms, n };
+}
+function buildLinearEquation(eqText, allVars){
+  const eqIdx = eqText.indexOf('=');
+  if(eqIdx===-1) throw new ParseError(`「${eqText}」に = がありません`);
+  const lhsAst = parse(importText(eqText.slice(0,eqIdx)));
+  const rhsAst = parse(importText(eqText.slice(eqIdx+1)));
+  function f(valuesObj){ return evalNode(lhsAst,[],valuesObj,{forceRad:true}).value - evalNode(rhsAst,[],valuesObj,{forceRad:true}).value; }
+  const zeroVals = {}; allVars.forEach(v=>zeroVals[v]=0);
+  const b0 = f(zeroVals);
+  const coeffs = {};
+  for(const v of allVars){
+    const c1 = f(Object.assign({}, zeroVals, {[v]:1})) - b0;
+    const c2 = f(Object.assign({}, zeroVals, {[v]:2})) - b0;
+    if(Math.abs(c2 - 2*c1) > 1e-6) throw new ParseError(`「${eqText}」は1次式ではないようです(今は連立一次方程式のみ対応)`);
+    coeffs[v] = c1;
+  }
+  const varsArr = [...allVars];
+  for(let i=0;i<varsArr.length;i++){
+    for(let j=i+1;j<varsArr.length;j++){
+      const vi=varsArr[i], vj=varsArr[j];
+      const predicted = b0 + coeffs[vi] + coeffs[vj];
+      const actual = f(Object.assign({}, zeroVals, {[vi]:1, [vj]:1}));
+      if(Math.abs(actual - predicted) > 1e-6) throw new ParseError(`「${eqText}」に交差項(${vi}×${vj}など)が含まれているようです。連立一次方程式のみ対応しています`);
+    }
+  }
+  return { coeffs, b0 };
+}
+function solveLinearSystem(eqTexts){
+  const allVarsSet = new Set();
+  eqTexts.forEach(t=>{
+    const eqIdx=t.indexOf('=');
+    if(eqIdx===-1) throw new ParseError(`「${t}」に = がありません`);
+    const lhsAst = parse(importText(t.slice(0,eqIdx)));
+    const rhsAst = parse(importText(t.slice(eqIdx+1)));
+    freeVars(lhsAst,new Set()).forEach(v=>allVarsSet.add(v));
+    freeVars(rhsAst,new Set()).forEach(v=>allVarsSet.add(v));
+  });
+  const allVars = [...allVarsSet].sort();
+  if(allVars.length===0) throw new ParseError('未知数が見つかりません');
+  if(allVars.length !== eqTexts.length) throw new ParseError(`式の数(${eqTexts.length})と未知数の数(${allVars.length}: ${allVars.join(',')})が一致しません`);
+  const rows = eqTexts.map(t=>buildLinearEquation(t, allVars));
+  const n = allVars.length;
+  const M = rows.map((r,i)=>[...allVars.map(v=>r.coeffs[v]), -r.b0]);
+  for(let col=0; col<n; col++){
+    let pivotRow = col;
+    for(let r=col+1;r<n;r++){ if(Math.abs(M[r][col]) > Math.abs(M[pivotRow][col])) pivotRow=r; }
+    if(Math.abs(M[pivotRow][col]) < 1e-10) throw new ParseError('この連立方程式は解が一意に定まりません(解なし、または不定)');
+    [M[col], M[pivotRow]] = [M[pivotRow], M[col]];
+    const pivotVal = M[col][col];
+    for(let c=col;c<=n;c++) M[col][c] /= pivotVal;
+    for(let r=0;r<n;r++){
+      if(r===col) continue;
+      const factor = M[r][col];
+      for(let c=col;c<=n;c++) M[r][c] -= factor*M[col][c];
+    }
+  }
+  const solution = {};
+  allVars.forEach((v,i)=>{ solution[v] = M[i][n]; });
+  return solution;
+}
+
+/* ===================== グラフ ===================== */
+function buildGraphData(exprText, xmin, xmax, samples){
+  const ast = parse(importText(exprText));
+  const vars = freeVars(ast, new Set());
+  if(vars.size>1) throw new ParseError(`グラフは1種類の文字(例:x)のみ対応しています(見つかった文字: ${[...vars].join(',')})`);
+  const varName = vars.size===1 ? [...vars][0] : 'x';
+  const points = [];
+  for(let i=0;i<=samples;i++){
+    const x = xmin + (xmax-xmin)*i/samples;
+    let y;
+    try{ y = evalNode(ast, [], {[varName]:x}, {forceRad:true}).value; if(!isFinite(y)) y = null; }
+    catch(e){ y = null; }
+    points.push({x,y});
+  }
+  return { points, varName };
+}
+function buildGraphSVG(data, xmin, xmax){
+  const W=280, H=190, P=26;
+  const finite = data.points.map(p=>p.y).filter(y=>y!==null);
+  if(finite.length===0) throw new ParseError('グラフを描画できる点がありませんでした(定義域外の可能性があります)');
+  let yMin = Math.min(...finite), yMax = Math.max(...finite);
+  const sortedY = finite.slice().sort((a,b)=>a-b);
+  const q05 = sortedY[Math.floor(sortedY.length*0.05)];
+  const q95 = sortedY[Math.min(sortedY.length-1, Math.floor(sortedY.length*0.95))];
+  let clipMin=q05, clipMax=q95;
+  const pad = (clipMax-clipMin)*0.2 || 1;
+  clipMin -= pad; clipMax += pad;
+  if((yMax-yMin) > (clipMax-clipMin)*3 && (clipMax-clipMin)>1e-9){ yMin=clipMin; yMax=clipMax; }
+  if(yMax===yMin){ yMax+=1; yMin-=1; }
+
+  function px(x){ return P + (x-xmin)/(xmax-xmin)*(W-2*P); }
+  function py(y){ return H-P - (y-yMin)/(yMax-yMin)*(H-2*P); }
+
+  let d=''; let drawing=false;
+  data.points.forEach(p=>{
+    if(p.y===null || p.y < yMin-(yMax-yMin) || p.y > yMax+(yMax-yMin)){ drawing=false; return; }
+    const X=px(p.x), Y=py(p.y);
+    d += (drawing?'L':'M') + X.toFixed(2) + ' ' + Y.toFixed(2) + ' ';
+    drawing = true;
+  });
+
+  let axes='';
+  if(0>=yMin && 0<=yMax){ const y0=py(0); axes += `<line x1="${P}" y1="${y0.toFixed(1)}" x2="${W-P}" y2="${y0.toFixed(1)}" stroke="#5b6579" stroke-width="1" opacity="0.5"/>`; }
+  if(0>=xmin && 0<=xmax){ const x0=px(0); axes += `<line x1="${x0.toFixed(1)}" y1="${P}" x2="${x0.toFixed(1)}" y2="${H-P}" stroke="#5b6579" stroke-width="1" opacity="0.5"/>`; }
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:320px; display:block;">
+    ${axes}
+    <path d="${d.trim()}" fill="none" stroke="#c1432f" stroke-width="2"/>
+    <text x="${P}" y="${H-6}" font-size="9" fill="#5b6579" font-family="JetBrains Mono, monospace">${formatNum(xmin)}</text>
+    <text x="${W-P-24}" y="${H-6}" font-size="9" fill="#5b6579" font-family="JetBrains Mono, monospace">${formatNum(xmax)}</text>
+    <text x="3" y="${P+3}" font-size="9" fill="#5b6579" font-family="JetBrains Mono, monospace">${formatNum(yMax)}</text>
+    <text x="3" y="${H-P}" font-size="9" fill="#5b6579" font-family="JetBrains Mono, monospace">${formatNum(yMin)}</text>
+  </svg>`;
+}
+
+/* ===================== コマンド ===================== */
+const COMMANDS = [
+  {name:'/all', desc:'コマンド一覧を表示します(/help でも同じ)'},
+  {name:'/clear', desc:'チャット履歴をすべて消去します(/c でも同じ)'},
+  {name:'/deg', desc:'三角関数の角度モードを度数法(DEG)にします'},
+  {name:'/rad', desc:'三角関数の角度モードを弧度法(RAD)にします'},
+  {name:'/graph <式> [xmin] [xmax]', desc:'グラフを描画します(sin/cos/logなど何でも可) 例: /graph sin(x) -10 10 ※コマンド無しでもsin(t)等1変数の式を打つだけで自動グラフ表示されます'},
+  {name:'/solve <式1>; <式2>; …', desc:'方程式・連立方程式を解きます(2次方程式は虚数解、2元の非線形連立にも対応)。コマンド無しで「x+y=5; x-y=1」のように打つだけでも解けます'},
+  {name:'/ineq <不等式>', desc:'不等式を解きます(コマンド無しで「>」「<」を含む式を打つだけでも解けます) 例: /ineq x^2<9'},
+  {name:'/diff <式>', desc:'1変数の式を微分します 例: /diff x^2*sin(x)'},
+  {name:'/stats <数値,数値,…>', desc:'平均・分散・標準偏差・中央値などを計算します 例: /stats 1,2,3,4,5'},
+  {name:'/vec <dot|cross|add|sub|mag|angle> [..] [..]', desc:'ベクトル計算 例: /vec dot [1,2,3] [4,5,6]'},
+  {name:'/matrix <det|mul|inv> [[..]] [[..]]', desc:'行列計算 例: /matrix det [[1,2],[3,4]]'},
+  {name:'/seq <初項[,初項2]> ; <漸化式> ; <n>', desc:'数列(等差・等比・一般漸化式)を計算します。前の項はa、2つ前はb、番号はnで参照 例: /seq 2; a+3; 10(等差) /seq 1,1; a+b; 10(フィボナッチ)'},
+];
+
+/* ===================== 表示(数式ビジュアル) ===================== */
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function textSpan(txt, cls){ const s=document.createElement('span'); if(cls) s.className=cls; s.textContent=txt; return s; }
+function renderTokenArray(arr, opts){
+  const frag = document.createElement('span'); frag.className = 'expr-line';
+  if(arr.length===0 && opts.interactive){ frag.appendChild(textSpan('…','slot-placeholder')); }
+  arr.forEach(t=>{ frag.appendChild(renderToken(t, opts)); });
+  return frag;
+}
+function renderToken(t, opts){
+  switch(t.type){
+    case 'num': return textSpan(t.value);
+    case 'op': return textSpan(t.unary && t.value==='-' ? '−' : t.value, 'op-span');
+    case 'lparen': return textSpan('(');
+    case 'rparen': return textSpan(')');
+    case 'pi': return textSpan('π','const-span');
+    case 'e': return textSpan('e','const-span');
+    case 'fact': return textSpan('!');
+    case 'var': return textSpan(t.name,'var-span');
+    case 'tpl': return renderTemplate(t, opts);
+  }
+  return document.createTextNode('');
+}
+function renderTemplate(node, opts){
+  const wrap = document.createElement('span'); wrap.className = 'tpl tpl-'+node.kind;
+  function slotBox(key, extraCls){
+    const box = document.createElement('span'); box.className = 'slot ' + (extraCls||'');
+    if(opts.interactive){
+      const top = focusPath[focusPath.length-1];
+      if(top && top.node===node && top.key===key) box.classList.add('active-slot');
+      box.addEventListener('click', (e)=>{ e.stopPropagation(); setFocusTo(node,key); });
+    }
+    box.appendChild(renderTokenArray(node.slots[key], opts));
+    return box;
+  }
+  if(node.kind==='frac'){
+    const col = document.createElement('span'); col.className='frac-col';
+    col.appendChild(slotBox('num','frac-num'));
+    const bar = document.createElement('span'); bar.className='frac-bar'; col.appendChild(bar);
+    col.appendChild(slotBox('den','frac-den'));
+    wrap.appendChild(col);
+  } else if(node.kind==='sum' || node.kind==='integral'){
+    const sign = document.createElement('span'); sign.className='big-sign'; sign.textContent = node.kind==='sum' ? 'Σ' : '∫';
+    const boundCol = document.createElement('span'); boundCol.className='bound-col';
+    boundCol.appendChild(slotBox('upper','bound-upper'));
+    boundCol.appendChild(sign);
+    boundCol.appendChild(slotBox('lower','bound-lower'));
+    wrap.appendChild(boundCol);
+    wrap.appendChild(slotBox('body','tpl-body'));
+    if(node.kind==='integral') wrap.appendChild(textSpan('dx','dx-label'));
+  } else if(node.kind==='sqrt'){
+    wrap.appendChild(textSpan('√','radical-sign'));
+    wrap.appendChild(slotBox('body','radicand'));
+  } else if(node.kind==='nthroot'){
+    wrap.appendChild(slotBox('index','root-index'));
+    wrap.appendChild(textSpan('√','radical-sign'));
+    wrap.appendChild(slotBox('body','radicand'));
+  } else if(node.kind==='abs'){
+    wrap.appendChild(textSpan('|','abs-bar'));
+    wrap.appendChild(slotBox('body','abs-body'));
+    wrap.appendChild(textSpan('|','abs-bar'));
+  } else if(node.kind==='ncr' || node.kind==='npr'){
+    wrap.appendChild(slotBox('n','func-body'));
+    wrap.appendChild(textSpan(node.kind==='ncr'?'C':'P','combo-label'));
+    wrap.appendChild(slotBox('r','func-body'));
+  } else if(node.kind==='gcd' || node.kind==='lcm'){
+    wrap.appendChild(textSpan(node.kind,'func-label'));
+    wrap.appendChild(textSpan('(','func-paren'));
+    wrap.appendChild(slotBox('a','func-body'));
+    wrap.appendChild(textSpan(',','func-paren'));
+    wrap.appendChild(slotBox('b','func-body'));
+    wrap.appendChild(textSpan(')','func-paren'));
+  } else if(node.kind==='logb'){
+    wrap.appendChild(textSpan('log','func-label'));
+    wrap.appendChild(slotBox('base','root-index'));
+    wrap.appendChild(textSpan('(','func-paren'));
+    wrap.appendChild(slotBox('x','func-body'));
+    wrap.appendChild(textSpan(')','func-paren'));
+  } else {
+    wrap.appendChild(textSpan(node.kind,'func-label'));
+    wrap.appendChild(textSpan('(','func-paren'));
+    wrap.appendChild(slotBox('body','func-body'));
+    wrap.appendChild(textSpan(')','func-paren'));
+  }
+  return wrap;
+}
+function render(){ renderPreview(); renderFocusToolbar(); }
+function renderPreview(){
+  const preview = document.getElementById('preview');
+  preview.innerHTML = ''; preview.className = 'interactive';
+  if(tokens.length===0){
+    const ph = document.createElement('span'); ph.className='placeholder'; ph.textContent='式をここに入力…';
+    preview.appendChild(ph);
+    const cur = document.createElement('span'); cur.className='cursor'; preview.appendChild(cur);
+    return;
+  }
+  preview.appendChild(renderTokenArray(tokens, {interactive:true}));
+  const cur = document.createElement('span'); cur.className='cursor'; preview.appendChild(cur);
+  preview.scrollTop = preview.scrollHeight;
+}
+function renderFocusToolbar(){
+  const bar = document.getElementById('focusToolbar');
+  const label = document.getElementById('focusLabel');
+  if(focusPath.length===0){ bar.classList.remove('show'); return; }
+  const step = focusPath[focusPath.length-1];
+  label.textContent = '編集中: ' + labelFor(step.node.kind, step.key);
+  bar.classList.add('show');
+  const def = TPL_DEFS[step.node.kind];
+  const idx = def.slots.indexOf(step.key);
+  document.getElementById('fNext').textContent = idx < def.slots.length-1 ? '次のらん▶' : '完了 ✓';
+}
+
+/* ===================== コピー ===================== */
+function copyToClipboard(text, btn){
+  function done(ok){
+    if(!btn) return;
+    btn.classList.toggle('copied', ok);
+    btn.textContent = ok ? '✓ コピー済み' : '✗ 失敗';
+    setTimeout(()=>{ btn.classList.remove('copied'); btn.textContent = '📄 コピー'; }, 1600);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>done(true)).catch(()=>fallbackCopy(text, done));
+  } else { fallbackCopy(text, done); }
+}
+function fallbackCopy(text, done){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    done(ok);
+  }catch(e){ done(false); }
+}
+
+/* ===================== チャット描画 ===================== */
+function chatEl(){ return document.getElementById('chat'); }
+function clearHint(){ const hint = document.getElementById('hint'); if(hint) hint.remove(); }
+
+function addUserBubbleTokens(tokArr){
+  clearHint();
+  const row = document.createElement('div'); row.className = 'row user';
+  const bubble = document.createElement('div'); bubble.className = 'bubble user';
+  bubble.appendChild(renderTokenArray(tokArr, {interactive:false}));
+  row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addUserBubbleText(text){
+  clearHint();
+  const row = document.createElement('div'); row.className = 'row user';
+  const bubble = document.createElement('div'); bubble.className = 'bubble user';
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addAiBubble({steps, text, approx, error}){
+  const row = document.createElement('div'); row.className = 'row ai';
+  if(error){
+    row.innerHTML = `<div class="bubble ai error"><div class="err-msg">⚠️ ${escapeHtml(error)}</div></div>`;
+    chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight; return;
+  }
+  let stepsHtml = '';
+  if(steps.length === 0){
+    stepsHtml = `<div class="no-steps">この式はすでに1つの値なので、計算の途中式はありません。</div>`;
+  } else {
+    stepsHtml = '<div class="steps">' + steps.map((s,i)=>`
+      <div class="step">
+        <span class="num">${i+1}</span>
+        <span class="expr">${escapeHtml(s.expr)}</span>
+        <span class="arrow">→</span>
+        <span class="val${s.approx?' is-approx':''}">${escapeHtml((s.val||'').replace('≈',''))}</span>
+      </div>`).join('') + '</div>';
+  }
+  const bubble = document.createElement('div'); bubble.className = 'bubble ai';
+  bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">こたえ</span>${approx?'<span class="approx-tag">約</span>':''}<span class="value">${escapeHtml(text)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard((approx?'約 ':'')+text, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  row.appendChild(bubble); chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addInfoBubble(html){
+  const row = document.createElement('div'); row.className = 'row ai';
+  const bubble = document.createElement('div'); bubble.className = 'bubble ai';
+  bubble.innerHTML = html;
+  row.appendChild(bubble); chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addEquationBubble({varName, roots}){
+  const TRUNCATE_AT = 12;
+  const truncated = roots.length > TRUNCATE_AT;
+  const shown = truncated ? roots.slice(0, TRUNCATE_AT) : roots;
+  const stepsHtml = '<div class="steps">' + shown.map((r,i)=>{
+    const isExact = Math.abs(r-Math.round(r)) < 1e-6;
+    const val = isExact ? formatNum(Math.round(r)) : formatNum(r);
+    return `<div class="step"><span class="num">${i+1}</span><span class="expr">解 ${i+1}</span><span class="arrow">→</span><span class="val${isExact?'':' is-approx'}">${varName} = ${escapeHtml(val)}</span></div>`;
+  }).join('') + (truncated ? `<div class="step"><span class="expr">…他にも解があります(-1000〜1000の範囲で${roots.length}個見つかりました。周期的な式の可能性があります)</span></div>` : '') + '</div>';
+  const finalText = shown.map(r=>formatNum(r)).join(', ') + (truncated ? ' …' : '');
+  const anyApprox = roots.some(r=>Math.abs(r-Math.round(r))>=1e-6);
+  const bubble = document.createElement('div'); bubble.className = 'bubble ai';
+  bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">${varName} =</span>${anyApprox?'<span class="approx-tag">約</span>':''}<span class="value">${escapeHtml(finalText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(`${varName} = ${roots.map(formatNum).join(', ')}`, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addSystemBubble(solution){
+  const vars = Object.keys(solution);
+  const stepsHtml = '<div class="steps">' + vars.map((v,i)=>`<div class="step"><span class="num">${i+1}</span><span class="expr">${v}</span><span class="arrow">→</span><span class="val">${escapeHtml(formatNum(solution[v]))}</span></div>`).join('') + '</div>';
+  const finalText = vars.map(v=>`${v}=${formatNum(solution[v])}`).join(', ');
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">こたえ</span><span class="value">${escapeHtml(finalText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(finalText, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addDiffBubble(varName, exprText, derivativeText){
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `<div class="no-steps">f(${varName}) = ${escapeHtml(exprText)} を ${varName} で微分</div>
+    <div class="final"><span class="label">f'(${varName}) =</span><span class="value" style="font-size:17px;">${escapeHtml(derivativeText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(derivativeText, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addComplexEquationBubble({varName, re, im}){
+  const reTxt = formatNum(re), imTxt = formatNum(Math.abs(im));
+  const finalText = `${varName} = ${reTxt} ± ${imTxt}i`;
+  const stepsHtml = `<div class="steps">
+    <div class="step"><span class="num">1</span><span class="expr">判別式 D &lt; 0(実数解なし)なので複素数解を計算</span></div>
+    <div class="step"><span class="num">2</span><span class="expr">実部</span><span class="arrow">→</span><span class="val">${escapeHtml(reTxt)}</span></div>
+    <div class="step"><span class="num">3</span><span class="expr">虚部の大きさ</span><span class="arrow">→</span><span class="val is-approx">${escapeHtml(imTxt)}</span></div>
+  </div>`;
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">こたえ(虚数解)</span><span class="value">${escapeHtml(finalText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(finalText, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addStatsBubble(s){
+  const rows = [
+    ['個数 n', s.n], ['合計', formatNum(s.sum)], ['平均', formatNum(s.mean)], ['中央値', formatNum(s.median)],
+    ['最小値', formatNum(s.min)], ['最大値', formatNum(s.max)],
+    ['分散(母集団)', formatNum(s.popVar)], ['標準偏差(母集団)', formatNum(s.popStd)],
+  ];
+  if(s.n>1){ rows.push(['分散(標本)', formatNum(s.sampleVar)]); rows.push(['標準偏差(標本)', formatNum(s.sampleStd)]); }
+  const stepsHtml = '<div class="steps">' + rows.map((r,i)=>`<div class="step"><span class="num">${i+1}</span><span class="expr">${escapeHtml(r[0])}</span><span class="arrow">→</span><span class="val">${escapeHtml(String(r[1]))}</span></div>`).join('') + '</div>';
+  const finalText = `平均=${formatNum(s.mean)}, 標準偏差(母)=${formatNum(s.popStd)}`;
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">要約</span><span class="value" style="font-size:15px;">${escapeHtml(finalText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(rows.map(r=>`${r[0]}: ${r[1]}`).join('\n'), copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addInequalityBubble(varName, solutionText){
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `<div class="final"><span class="label">${escapeHtml(varName)} の範囲</span><span class="value" style="font-size:18px;">${escapeHtml(solutionText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(solutionText, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addMultiSystemBubble(solutions){
+  const vars = Object.keys(solutions[0]);
+  const stepsHtml = '<div class="steps">' + solutions.map((sol,i)=>
+    `<div class="step"><span class="num">${i+1}</span><span class="expr">解 ${i+1}</span><span class="arrow">→</span><span class="val">${vars.map(v=>`${v}=${formatNum(sol[v])}`).join(', ')}</span></div>`
+  ).join('') + '</div>';
+  const finalText = solutions.map(sol=>'('+vars.map(v=>formatNum(sol[v])).join(', ')+')').join(', ');
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">こたえ(${vars.join(',')})</span><span class="value" style="font-size:15px;">${escapeHtml(finalText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(finalText, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addValueBubble(label, valueText){
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(valueText, copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addSequenceBubble(terms, n){
+  const items = terms.map((t,i)=>({ idx:i+1, val:t }));
+  const preview = items.length<=12 ? items : items.slice(0,5).concat([{idx:null,val:null}]).concat(items.slice(-3));
+  const stepsHtml = `<div class="no-steps">項の並び (全${n}項)</div><div class="steps">` +
+    preview.map(item => item.idx===null
+      ? `<div class="step"><span class="expr">…</span></div>`
+      : `<div class="step"><span class="num">${item.idx}</span><span class="expr">a(${item.idx})</span><span class="arrow">→</span><span class="val">${escapeHtml(formatNum(item.val))}</span></div>`
+    ).join('') + '</div>';
+  const finalText = `a(${n}) = ${formatNum(terms[terms.length-1])}`;
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = `${stepsHtml}<div class="final"><span class="label">こたえ</span><span class="value">${escapeHtml(finalText)}</span></div>`;
+  const copyBtn = document.createElement('button'); copyBtn.className='copy-btn'; copyBtn.textContent='📄 コピー';
+  copyBtn.addEventListener('click', ()=> copyToClipboard(terms.map(formatNum).join(', '), copyBtn));
+  bubble.querySelector('.final').appendChild(copyBtn);
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addGraphBubble(svgHtml, caption){
+  const bubble = document.createElement('div'); bubble.className='bubble ai';
+  bubble.innerHTML = svgHtml + `<div class="graph-caption">${escapeHtml(caption)}</div>`;
+  const row = document.createElement('div'); row.className='row ai'; row.appendChild(bubble);
+  chatEl().appendChild(row); chatEl().scrollTop = chatEl().scrollHeight;
+}
+function addCommandListBubble(){
+  const html = '<div class="cmd-list">' + COMMANDS.map(c=>`<div class="cmd-item"><span class="cname">${escapeHtml(c.name)}</span><span class="cdesc">${escapeHtml(c.desc)}</span></div>`).join('') + '</div>';
+  addInfoBubble(html);
+}
+
+/* ===================== 実行(タップ入力からの計算) ===================== */
+function submit(){
+  if(tokens.length===0) return;
+  addUserBubbleTokens(tokens);
+  try{ addAiBubble(compute()); }
+  catch(err){ addAiBubble({ error: err.message || '計算できませんでした' }); }
+  clearAll();
+}
+
+/* ===================== REPL(コマンドライン)処理 ===================== */
+function updateAngleBtn(){ document.getElementById('angleBtn').textContent = angleMode==='deg' ? 'DEG' : 'RAD'; }
+
+function runReplText(raw){
+  const text = raw.trim();
+  if(!text) return;
+  addUserBubbleText(text);
+
+  if(text.startsWith('/')){ runCommand(text); return; }
+
+  // 不等号(<,>,<=,>=)を含む場合は不等式として解く
+  if(/[<>]/.test(text)){
+    try{
+      const r = solveInequalityText(text);
+      addInequalityBubble(r.varName, formatInequalitySolution(r));
+    }catch(err){ addAiBubble({ error: err.message || '不等式を解けませんでした' }); }
+    return;
+  }
+
+  if(text.includes('=')){
+    const eqParts = text.split(';').map(s=>s.trim()).filter(s=>s.length>0);
+    if(eqParts.length > 1){
+      // コマンド無しでも「;」で式をつなげれば連立方程式として自動的に解く
+      try{
+        const sol = solveLinearSystem(eqParts);
+        addSystemBubble(sol);
+      }catch(err){
+        const fallback = tryNonlinearFallback(eqParts);
+        if(fallback){ addMultiSystemBubble(fallback); }
+        else { addAiBubble({ error: err.message || '連立方程式を解けませんでした' }); }
+      }
+      return;
+    }
+    try{
+      const r = solveEquationText(text);
+      if(r.complex) addComplexEquationBubble(r); else addEquationBubble(r);
+    }catch(err){ addAiBubble({ error: err.message || '方程式を解けませんでした' }); }
+    return;
+  }
+
+  try{
+    const tokArr = importText(text);
+    addAiBubble(computeTokens(tokArr));
+  }catch(err){
+    // 未定義の文字(変数)が原因で計算できない場合、1変数の式ならグラフとして自動表示する
+    try{
+      const data = buildGraphData(text, -10, 10, 240);
+      const svg = buildGraphSVG(data, -10, 10);
+      addInfoBubble(`<div class="info-msg">「${escapeHtml(data.varName)}」を変数とみなし、グラフとして表示しました。</div>`);
+      addGraphBubble(svg, `y = ${text}  (${data.varName}: -10 〜 10)`);
+    }catch(err2){
+      addAiBubble({ error: err.message || '計算できませんでした' });
+    }
+  }
+}
+function tryNonlinearFallback(eqParts){
+  if(eqParts.length !== 2) return null;
+  try{
+    const allVars = new Set();
+    eqParts.forEach(t=>{
+      const idx=t.indexOf('=');
+      if(idx===-1) return;
+      const lhsAst = parse(importText(t.slice(0,idx)));
+      const rhsAst = parse(importText(t.slice(idx+1)));
+      freeVars(lhsAst,new Set()).forEach(v=>allVars.add(v));
+      freeVars(rhsAst,new Set()).forEach(v=>allVars.add(v));
+    });
+    const varNames = [...allVars].sort();
+    if(varNames.length !== 2) return null;
+    return solveNonlinearSystem2(eqParts, varNames);
+  }catch(e){ return null; }
+}
+
+
+function runCommand(text){
+  const parts = text.trim().split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const args = text.slice(parts[0].length).trim();
+
+  if(cmd==='/all' || cmd==='/help'){ addCommandListBubble(); return; }
+  if(cmd==='/clear' || cmd==='/c'){
+    chatEl().innerHTML = '';
+    addInfoBubble('<div class="info-msg">チャットを消去しました。</div>');
+    return;
+  }
+  if(cmd==='/deg'){ angleMode='deg'; updateAngleBtn(); addInfoBubble('<div class="info-msg">角度モードを DEG(度数法) にしました。</div>'); return; }
+  if(cmd==='/rad'){ angleMode='rad'; updateAngleBtn(); addInfoBubble('<div class="info-msg">角度モードを RAD(弧度法) にしました。</div>'); return; }
+
+  if(cmd==='/graph'){
+    if(!args){ addAiBubble({error:'使い方: /graph <式> [xmin] [xmax]  例: /graph x^2 -5 5'}); return; }
+    const argParts = args.split(/\s+/);
+    let xmin=-10, xmax=10, exprText=args;
+    if(argParts.length>=3){
+      const maybeMax = parseFloat(argParts[argParts.length-1]);
+      const maybeMin = parseFloat(argParts[argParts.length-2]);
+      if(!isNaN(maybeMax) && !isNaN(maybeMin)){
+        xmax = maybeMax; xmin = maybeMin;
+        exprText = argParts.slice(0, argParts.length-2).join(' ');
+      }
+    }
+    try{
+      const data = buildGraphData(exprText, xmin, xmax, 240);
+      const svg = buildGraphSVG(data, xmin, xmax);
+      addGraphBubble(svg, `y = ${exprText}  (${data.varName}: ${xmin} 〜 ${xmax})`);
+    }catch(err){ addAiBubble({ error: err.message || 'グラフを描画できませんでした' }); }
+    return;
+  }
+
+  if(cmd==='/solve'){
+    if(!args){ addAiBubble({error:'使い方: /solve <式1>; <式2>; …  例: /solve x+y=5; x-y=1'}); return; }
+    const eqs = args.split(/;|\n/).map(s=>s.trim()).filter(s=>s.length>0);
+    try{
+      if(eqs.length===1){
+        const r = solveEquationText(eqs[0]);
+        if(r.complex) addComplexEquationBubble(r); else addEquationBubble(r);
+      } else {
+        try{
+          const sol = solveLinearSystem(eqs);
+          addSystemBubble(sol);
+        }catch(err){
+          const fallback = tryNonlinearFallback(eqs);
+          if(fallback){ addMultiSystemBubble(fallback); }
+          else { throw err; }
+        }
+      }
+    }catch(err){ addAiBubble({ error: err.message || '解けませんでした' }); }
+    return;
+  }
+
+  if(cmd==='/ineq'){
+    if(!args){ addAiBubble({error:'使い方: /ineq <不等式>  例: /ineq x^2<9  (「>」「<」を含む式ならコマンド無しでも自動で解けます)'}); return; }
+    try{
+      const r = solveInequalityText(args);
+      addInequalityBubble(r.varName, formatInequalitySolution(r));
+    }catch(err){ addAiBubble({ error: err.message || '不等式を解けませんでした' }); }
+    return;
+  }
+
+  if(cmd==='/diff'){
+    if(!args){ addAiBubble({error:'使い方: /diff <式>  例: /diff x^2*sin(x)'}); return; }
+    try{
+      const r = diffText(args);
+      addDiffBubble(r.varName, args, r.derivativeText);
+    }catch(err){ addAiBubble({ error: err.message || '微分できませんでした' }); }
+    return;
+  }
+
+  if(cmd==='/stats'){
+    if(!args){ addAiBubble({error:'使い方: /stats <数値,数値,…>  例: /stats 1,2,3,4,5'}); return; }
+    try{
+      const nums = args.split(',').map(s=>s.trim()).filter(s=>s.length>0).map(s=>computeTokens(importText(s)).value);
+      addStatsBubble(computeStats(nums));
+    }catch(err){ addAiBubble({ error: err.message || '統計を計算できませんでした' }); }
+    return;
+  }
+
+  if(cmd==='/vec'){
+    const vparts = args.split(/\s+/);
+    const op = (vparts[0]||'').toLowerCase();
+    const vecTexts = args.match(/\[[^\]]*\]/g) || [];
+    if(!op || vecTexts.length===0){ addAiBubble({error:'使い方: /vec <dot|cross|add|sub|mag|angle> [..] [..]  例: /vec dot [1,2,3] [4,5,6]'}); return; }
+    try{
+      const vecs = vecTexts.map(parseVectorText);
+      if(op==='mag' || op==='norm'){
+        addValueBubble('大きさ |v|', formatNum(vecMag(vecs[0])));
+      } else if(op==='dot'){
+        addValueBubble('内積 a・b', formatNum(vecDot(vecs[0], vecs[1])));
+      } else if(op==='cross'){
+        addValueBubble('外積 a×b', '[' + vecCross(vecs[0],vecs[1]).map(formatNum).join(', ') + ']');
+      } else if(op==='add'){
+        addValueBubble('a + b', '[' + vecAdd(vecs[0],vecs[1]).map(formatNum).join(', ') + ']');
+      } else if(op==='sub'){
+        addValueBubble('a − b', '[' + vecSub(vecs[0],vecs[1]).map(formatNum).join(', ') + ']');
+      } else if(op==='angle'){
+        addValueBubble('a と b のなす角', formatNum(vecAngleDeg(vecs[0],vecs[1])) + '°');
+      } else {
+        addAiBubble({error:`不明なベクトル演算です: ${op}(dot/cross/add/sub/mag/angle が使えます)`});
+      }
+    }catch(err){ addAiBubble({ error: err.message || 'ベクトル計算に失敗しました' }); }
+    return;
+  }
+
+  if(cmd==='/matrix'){
+    const mparts = args.split(/\s+/);
+    const op = (mparts[0]||'').toLowerCase();
+    const matTexts = [];
+    { // ネストした角括弧を壊さないよう、先頭の演算子名を除いた残り全体から行列リテラルを抽出
+      const rest = args.slice(op.length).trim();
+      let depth=0, current='';
+      for(const ch of rest){
+        if(ch==='['){ if(depth===0) current=''; depth++; current+=ch; continue; }
+        if(ch===']'){ depth--; current+=ch; if(depth===0){ matTexts.push(current); current=''; } continue; }
+        if(depth>0) current+=ch;
+      }
+    }
+    if(!op || matTexts.length===0){ addAiBubble({error:'使い方: /matrix <det|mul|inv> [[..]] [[..]]  例: /matrix det [[1,2],[3,4]]'}); return; }
+    try{
+      const mats = matTexts.map(parseMatrixText);
+      if(op==='det'){
+        addValueBubble('行列式 det', formatNum(matDet(mats[0])));
+      } else if(op==='mul'){
+        const C = matMul(mats[0], mats[1]);
+        addValueBubble('積 A×B', C.map(row=>'['+row.map(formatNum).join(',')+']').join(' '));
+      } else if(op==='inv'){
+        const Inv = matInv(mats[0]);
+        addValueBubble('逆行列 A⁻¹', Inv.map(row=>'['+row.map(formatNum).join(',')+']').join(' '));
+      } else {
+        addAiBubble({error:`不明な行列演算です: ${op}(det/mul/inv が使えます)`});
+      }
+    }catch(err){ addAiBubble({ error: err.message || '行列計算に失敗しました' }); }
+    return;
+  }
+
+  if(cmd==='/seq'){
+    const seqParts = args.split(';').map(s=>s.trim());
+    if(seqParts.length!==3){ addAiBubble({error:'使い方: /seq <初項[,初項2]> ; <漸化式> ; <n>  例: /seq 2; a+3; 10'}); return; }
+    try{
+      const r = computeSequence(seqParts[0], seqParts[1], seqParts[2]);
+      addSequenceBubble(r.terms, r.n);
+    }catch(err){ addAiBubble({ error: err.message || '数列を計算できませんでした' }); }
+    return;
+  }
+
+  addAiBubble({ error: `不明なコマンドです: ${cmd}(/all でコマンド一覧を確認できます)` });
+}
+
+/* ===================== イベント配線 ===================== */
+function wireKeypad(id){
+  document.getElementById(id).addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const num = btn.dataset.num;
+    const op = btn.dataset.realop || btn.dataset.op;
+    const tpl = btn.dataset.tpl;
+    const action = btn.dataset.action;
+    if(num !== undefined){ pushDigit(num); return; }
+    if(tpl !== undefined){ pushTemplate(tpl); return; }
+    if(op !== undefined){ pushOp(op); return; }
+    switch(action){
+      case 'paren-open': pushParenOpen(); break;
+      case 'paren-close': pushParenClose(); break;
+      case 'pi': pushConst('pi'); break;
+      case 'e': pushConst('e'); break;
+      case 'fact': pushFactorial(); break;
+      case 'var-n': pushVar('n'); break;
+      case 'var-x': pushVar('x'); break;
+      case 'back': backspace(); break;
+      case 'clear': clearAll(); break;
+      case 'equals': submit(); break;
+      case 'letter-picker': openLetterModal(); break;
+    }
+  });
+}
+wireKeypad('keypadBasic');
+wireKeypad('keypadFunc');
+wireKeypad('keypadMore');
+wireKeypad('keypadExt');
+
+document.getElementById('fNext').addEventListener('click', nextField);
+document.getElementById('fUp').addEventListener('click', exitField);
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('keypadBasic').style.display = btn.dataset.tab==='basic' ? 'grid' : 'none';
+    document.getElementById('keypadFunc').style.display = btn.dataset.tab==='func' ? 'grid' : 'none';
+    document.getElementById('keypadMore').style.display = btn.dataset.tab==='more' ? 'grid' : 'none';
+    document.getElementById('keypadExt').style.display = btn.dataset.tab==='ext' ? 'grid' : 'none';
+  });
+});
+
+document.getElementById('angleBtn').addEventListener('click', ()=>{
+  angleMode = angleMode==='deg' ? 'rad' : 'deg';
+  updateAngleBtn();
+});
+
+/* ---- REPL入力 ---- */
+const replInput = document.getElementById('replInput');
+document.getElementById('replRun').addEventListener('click', ()=>{ runReplText(replInput.value); replInput.value=''; });
+replInput.addEventListener('keydown', (e)=>{
+  if(e.key==='Enter'){ e.preventDefault(); runReplText(replInput.value); replInput.value=''; }
+});
+
+/* ---- 貼り付けモーダル ---- */
+const pasteModal = document.getElementById('pasteModal');
+const pasteInput = document.getElementById('pasteInput');
+document.getElementById('pasteBtn').addEventListener('click', ()=>{
+  pasteModal.classList.add('show'); pasteInput.value=''; setTimeout(()=>pasteInput.focus(), 50);
+});
+document.getElementById('pasteCancel').addEventListener('click', ()=> pasteModal.classList.remove('show'));
+pasteModal.addEventListener('click', (e)=>{ if(e.target===pasteModal) pasteModal.classList.remove('show'); });
+document.getElementById('pasteInsert').addEventListener('click', ()=>{
+  const val = pasteInput.value.trim();
+  if(val){ insertImportedTokens(val); }
+  pasteModal.classList.remove('show');
+});
+
+/* ---- 文字選択モーダル ---- */
+const letterModal = document.getElementById('letterModal');
+const letterGrid = document.getElementById('letterGrid');
+'abcdefghijklmnopqrstuvwxyz'.split('').forEach(ch=>{
+  const b = document.createElement('button'); b.textContent = ch;
+  b.addEventListener('click', ()=>{ pushVar(ch); letterModal.classList.remove('show'); });
+  letterGrid.appendChild(b);
+});
+function openLetterModal(){ letterModal.classList.add('show'); }
+document.getElementById('letterCancel').addEventListener('click', ()=> letterModal.classList.remove('show'));
+letterModal.addEventListener('click', (e)=>{ if(e.target===letterModal) letterModal.classList.remove('show'); });
+
+/* ---- 物理キーボード(タップ式プレビューへの入力。REPL/モーダル入力中は無効化) ---- */
+window.addEventListener('keydown', (e)=>{
+  const activeTag = document.activeElement && document.activeElement.tagName;
+  if(activeTag==='INPUT' || activeTag==='TEXTAREA') return; // REPLや貼り付け欄にフォーカス中は素通り
+  if(pasteModal.classList.contains('show') || letterModal.classList.contains('show')) return;
+  const map = { '*':'×', '/':'÷', '+':'+', '-':'-' };
+  if(/^[0-9]$/.test(e.key)){ pushDigit(e.key); }
+  else if(e.key==='.'){ pushDigit('.'); }
+  else if(/^[a-zA-Z]$/.test(e.key)){ pushVar(e.key.toLowerCase()); }
+  else if(map[e.key]){ pushOp(map[e.key]); }
+  else if(e.key==='^'){ pushOp('^'); }
+  else if(e.key==='%'){ pushOp('%'); }
+  else if(e.key==='('){ pushParenOpen(); }
+  else if(e.key===')'){ pushParenClose(); }
+  else if(e.key==='!'){ pushFactorial(); }
+  else if(e.key==='Backspace'){ backspace(); }
+  else if(e.key==='Enter' || e.key==='='){ submit(); }
+  else if(e.key==='Escape'){ clearAll(); }
+  else if(e.key==='Tab'){ e.preventDefault(); nextField(); }
+});
+
+render();
+updateAngleBtn();
+</script>
+</body>
+</html>
